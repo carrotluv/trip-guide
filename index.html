@@ -370,6 +370,13 @@ function osrmTrip(coords, roundtrip){
    고르는 문제를 막기 위해, 후보 목록을 보여주고 사용자가 직접 선택하게 한다.
    선택한 항목의 좌표를 그대로 저장하므로 계산 시 재변환(오인식) 없이 정확하다. */
 var depPicked = null;   // 출발지에서 선택한 {addr, ll}
+// 현재위치(허용 시) — 출발지·출장지 좌표가 하나도 없을 때 정렬 기준점으로 사용
+var geoPos = null;
+(function(){
+  if(navigator.geolocation) navigator.geolocation.getCurrentPosition(
+    function(p){ geoPos={lat:p.coords.latitude, lng:p.coords.longitude}; },
+    function(){}, {maximumAge:600000, timeout:5000});
+})();
 function hideSuggs(){ var s=document.querySelectorAll('.sugg'); for(var i=0;i<s.length;i++) s[i].remove(); }
 document.addEventListener('click', function(e){ if(!e.target.closest('.startbox')) hideSuggs(); });
 // 두 좌표 사이 직선거리(km) — 후보를 기준점(출발지 등)에서 가까운 순으로 정렬하는 데 사용
@@ -462,7 +469,9 @@ function firstSiteLL(){ for(var i=0;i<sites.length;i++){ if(sites[i].ll) return 
 function openDepSuggest(){
   var q=normPrefix($("depAddr").value);
   if(!q){ toast("출발지 주소를 입력하세요."); $("depAddr").focus(); return; }
-  showSuggest($("depBox"), q, {ref:firstSiteLL(), refLabel:"출장지", onPick:function(p){
+  var ref=firstSiteLL(), lbl="출장지";
+  if(!ref&&geoPos){ ref=geoPos; lbl="현재위치"; }
+  showSuggest($("depBox"), q, {ref:ref, refLabel:lbl, onPick:function(p){
     $("depAddr").value=p.addr;
     depPicked = p.ll ? {addr:p.addr, ll:p.ll} : null;
     markStale();
@@ -473,8 +482,9 @@ function openSiteSuggest(){
   if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
   var q=normPrefix($("inAddr").value);
   if(!q){ toast("출장지 주소를 입력하세요."); $("inAddr").focus(); return; }
-  var ref=(depPicked&&depPicked.ll)||firstSiteLL();
-  showSuggest($("siteBox"), q, {ref:ref, refLabel:"출발지", onPick:function(p){
+  var ref=(depPicked&&depPicked.ll)||firstSiteLL(), lbl="출발지";
+  if(!ref&&geoPos){ ref=geoPos; lbl="현재위치"; }
+  showSuggest($("siteBox"), q, {ref:ref, refLabel:lbl, onPick:function(p){
     sites.push({addr:p.addr, name:p.place||null, ll:p.ll||null});
     $("inAddr").value=""; $("inAddr").focus();
     renderSites(); markStale();
@@ -494,19 +504,28 @@ function getRet(){
 }
 
 /* ===== 출발지 즐겨찾기(localStorage) ===== */
-function loadSavedDeps(){ try{ var a=JSON.parse(localStorage.getItem(DEP_LS)||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+// 저장 형식: [{addr, ll}] — 예전 문자열 배열 형식도 자동 변환해 호환
+function loadSavedDeps(){
+  try{
+    var a=JSON.parse(localStorage.getItem(DEP_LS)||"[]");
+    if(!Array.isArray(a)) return [];
+    return a.map(function(e){ return (typeof e==='string')?{addr:e, ll:null}:e; })
+            .filter(function(e){ return e&&e.addr; });
+  }catch(e){ return []; }
+}
 function storeSavedDeps(arr){ try{ localStorage.setItem(DEP_LS, JSON.stringify(arr)); }catch(e){} }
 function renderSavedDeps(){
   var arr=loadSavedDeps(), sel=$("savedSel");
   sel.innerHTML='<option value="">★ 저장된 출발지에서 선택… ('+arr.length+'개)</option>'+
-    arr.map(function(s,i){ return '<option value="'+i+'">'+esc(s)+'</option>'; }).join("");
+    arr.map(function(s,i){ return '<option value="'+i+'">'+esc(s.addr)+'</option>'; }).join("");
 }
 function saveDep(){
   var a=normPrefix($("depAddr").value);
   if(!a){ toast("저장할 출발지 주소를 먼저 입력하세요."); $("depAddr").focus(); return; }
   var arr=loadSavedDeps();
-  if(arr.indexOf(a)!==-1){ toast("이미 저장된 출발지입니다."); return; }
-  arr.push(a); storeSavedDeps(arr); renderSavedDeps();
+  for(var i=0;i<arr.length;i++){ if(arr[i].addr===a){ toast("이미 저장된 출발지입니다."); return; } }
+  var ll=(depPicked&&depPicked.addr===a)?depPicked.ll:null;   // 검색으로 선택한 좌표까지 저장
+  arr.push({addr:a, ll:ll}); storeSavedDeps(arr); renderSavedDeps();
   $("savedSel").value=String(arr.length-1);
   toast("출발지를 저장했습니다. ★");
 }
@@ -784,7 +803,12 @@ $("saveDepBtn").addEventListener("click",saveDep);
 $("delSavedBtn").addEventListener("click",delSavedDep);
 $("savedSel").addEventListener("change",function(){
   var v=this.value; if(v==="") return;
-  var arr=loadSavedDeps(); if(arr[+v]!=null){ $("depAddr").value=arr[+v]; markStale(); }
+  var arr=loadSavedDeps(), it=arr[+v];
+  if(it){
+    $("depAddr").value=it.addr;
+    depPicked = it.ll ? {addr:it.addr, ll:it.ll} : null;   // 좌표 저장분이면 즉시 기준점으로 활용
+    markStale();
+  }
 });
 $("depAddr").addEventListener("input",markStale);
 $("retAddr").addEventListener("input",markStale);
