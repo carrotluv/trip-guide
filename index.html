@@ -48,7 +48,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .startbox.ret .pin{background:#8b5cf6}
 .savebtn{flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:9px;height:38px;padding:0 12px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--brand2);font-family:inherit;white-space:nowrap}
 .savebtn:hover{background:var(--brandsoft)}
-.prefix-in{flex:0 0 128px;width:128px!important;background:#eef0f8!important;border:1.5px solid var(--line);border-radius:11px;font-size:.85rem;font-weight:600;color:var(--muted)!important;text-align:center;white-space:nowrap}
 .chk-row{display:flex;align-items:center;gap:7px;font-size:.85rem;cursor:pointer;margin:10px 0 6px;user-select:none}
 .chk-row input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer}
 .site-list{margin:12px 0 6px;display:flex;flex-direction:column;gap:8px}
@@ -104,7 +103,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .empty{text-align:center;color:var(--muted);padding:24px 10px;font-size:.88rem;border:1.5px dashed var(--line);border-radius:12px}
 .foot{font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px}
 .hide{display:none!important}
-@media(max-width:620px){ .segrow{width:100%} .prefix-in{flex:0 0 104px;width:104px!important} }
+@media(max-width:620px){ .segrow{width:100%} }
 </style>
 </head>
 <body>
@@ -140,9 +139,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 
     <div class="site-list" id="siteList"></div>
 
-    <label class="fl" style="margin-top:12px">출장지 추가 — 왼쪽 상자에 지역명을 넣으면 주소 앞에 자동으로 붙습니다(선택)</label>
+    <label class="fl" style="margin-top:12px">출장지 추가</label>
     <div class="add-row">
-      <input type="text" id="prefixTxt" class="prefix-in" value="" placeholder="지역(선택)" maxlength="30" title="주소 앞에 자동으로 붙일 지역명 (비우면 붙이지 않음)">
       <input type="text" id="inAddr" style="flex:1;min-width:0" placeholder="출장지 주소 입력" maxlength="120">
     </div>
     <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 추가</button>
@@ -217,8 +215,6 @@ var calcMode = 'temp';
 var DEFAULT_KAKAO = '40a12a900e52a3b7377f94bd66f65484';  // 도메인 제한 카카오 JS 키(carrotluv.github.io 전용)
 var KEY_LS = 'cg_kakao_key';
 var DEP_LS = 'cg_saved_deps';     // 저장된 출발지 목록(JSON 배열)
-var LASTDEP_LS = 'cg_last_dep';   // 마지막 사용 출발지
-var PREFIX_LS = 'cg_prefix';      // 출장지 자동 접두 지역명
 var NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 var OSRM = 'https://router.project-osrm.org/trip/v1/driving/';
 var kakaoSDK = null;
@@ -233,17 +229,8 @@ function esc(s){ return (s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;
 function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1900); }
 function num(id,def){ var el=$(id); var v=el?parseFloat(el.value):NaN; return isNaN(v)?def:v; }
 function delay(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
-// 주소 자동 보정: 접두 지역명(수정 가능)이 없으면 앞에 붙임.
-// 입력에 접두의 마지막 낱말(예: "파주시")이 이미 있거나 첫 낱말(예: "경기도")로 시작하면 그대로 둠.
-function prefixVal(){ return ($("prefixTxt").value||"").replace(/\s+/g,' ').trim(); }
-function normPrefix(s){
-  s=(s||"").replace(/\s+/g,' ').trim();
-  if(!s) return "";
-  var p=prefixVal(); if(!p) return s;
-  var words=p.split(' '), last=words[words.length-1], first=words[0];
-  if(s.indexOf(last)!==-1 || s.indexOf(first)===0) return s;
-  return p + " " + s;
-}
+// 입력 주소 정리(연속 공백 정돈)
+function normPrefix(s){ return (s||"").replace(/\s+/g,' ').trim(); }
 
 /* ===== 지도앱 링크 ===== */
 var IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -390,7 +377,6 @@ function delSavedDep(){
   var arr=loadSavedDeps(); arr.splice(+v,1); storeSavedDeps(arr); renderSavedDeps();
   toast("저장 출발지를 삭제했습니다.");
 }
-function saveLastDep(){ try{ localStorage.setItem(LASTDEP_LS, normPrefix($("depAddr").value)); }catch(e){} }
 
 /* ===== 입력 렌더 ===== */
 function renderSites(){
@@ -444,7 +430,6 @@ $("inAddr").addEventListener("keydown",function(e){ if(e.key==="Enter") addSite(
 function calculate(){
   if(!getDep()){ toast("출발지 주소를 입력하세요."); $("depAddr").focus(); return; }
   if(!sites.length){ toast("출장지를 1곳 이상 추가하세요."); return; }
-  saveLastDep();
   var btn=$("calcBtn"); var label=btn.textContent; btn.disabled=true;
   btn.textContent="⏳ 좌표 변환·도로 경로 계산 중...";
   calcRoad().catch(function(e){ calcTemp(geoErrMsg(e)); }).then(function(){ btn.disabled=false; btn.textContent=label; });
@@ -639,14 +624,7 @@ $("retDiff").addEventListener("change",function(){
   if(this.checked) $("retAddr").focus();
   markStale();
 });
-$("prefixTxt").addEventListener("change",function(){
-  try{ localStorage.setItem(PREFIX_LS, prefixVal()); }catch(e){}
-});
 (function(){
-  try{
-    var p=localStorage.getItem(PREFIX_LS); if(p!==null) $("prefixTxt").value=p;
-    var d=localStorage.getItem(LASTDEP_LS); if(d) $("depAddr").value=d;
-  }catch(e){}
   renderSavedDeps();
   renderSites();
 })();
