@@ -1,7 +1,6 @@
 # 🧭 출장 길잡이 (chuljang-giljabi)
 
 출장 동선을 자동으로 정리하고, **네이버지도·카카오맵 무료 보조 확인** 기능을 제공하는 내부 업무용 웹앱입니다.
-([paju-giljabi](https://github.com/smile7962/paju-giljabi) 형식을 바탕으로 출발지·복귀지 기능을 일반화한 버전)
 
 ## 실행
 `index.html` 을 브라우저로 열기만 하면 됩니다. 빌드·서버·API 키가 필요 없습니다.
