@@ -116,7 +116,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--paju);bo
     <h2>📍 출장지 입력</h2>
     <div class="sub">출발지 주소를 입력하고(★ 저장 가능), 출장지 주소를 추가하세요.</div>
 
-    <label class="fl">출발 지점 — 주소 자유 입력 (예: 경기도 파주시 시청로 50)</label>
+    <label class="fl">출발 지점 — 주소 자유 입력</label>
     <div class="startbox">
       <span class="pin">출발</span>
       <input type="text" id="depAddr" placeholder="출발지 주소 입력" maxlength="120">
@@ -138,7 +138,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--paju);bo
     <label class="fl" style="margin-top:12px">출장지 추가 — 왼쪽 상자는 주소 앞에 자동으로 붙일 지역(수정·삭제 가능)</label>
     <div class="add-row">
       <input type="text" id="prefixTxt" class="prefix-in" value="경기도 파주시" maxlength="30" title="주소 앞에 자동으로 붙일 지역명 (비우면 붙이지 않음)">
-      <input type="text" id="inAddr" style="flex:1;min-width:0" placeholder="이후 주소 (예: 문산읍 선유리 1402)" maxlength="120">
+      <input type="text" id="inAddr" style="flex:1;min-width:0" placeholder="이후 주소 입력" maxlength="120">
     </div>
     <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 추가</button>
 
@@ -209,7 +209,7 @@ var retStop = null;      // 복귀 지점 {name,addr,ll} — 출발지와 같으
 var sameRet = true;      // 복귀지 = 출발지 여부
 var routeGeom = null;    // OSRM 도로 경로 geometry([lng,lat] 배열)
 var calcMode = 'temp';
-var DEFAULT_KAKAO = '';  // 자기 도메인에 등록한 카카오 JS 키를 넣으면 기본 내장됨(없으면 OSM으로 동작)
+var DEFAULT_KAKAO = '40a12a900e52a3b7377f94bd66f65484';  // 도메인 제한 카카오 JS 키(carrotluv.github.io 전용)
 var KEY_LS = 'cg_kakao_key';
 var DEP_LS = 'cg_saved_deps';     // 저장된 출발지 목록(JSON 배열)
 var LASTDEP_LS = 'cg_last_dep';   // 마지막 사용 출발지
