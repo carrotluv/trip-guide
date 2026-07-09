@@ -33,6 +33,9 @@ header.app h1{font-size:1.5rem;letter-spacing:-.02em;font-weight:800}
 header.app p{opacity:.78;font-size:.85rem;margin-top:5px}
 .badge{display:inline-block;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);
   font-size:.7rem;padding:3px 11px;border-radius:999px;margin-top:12px}
+header.app .hreset{position:absolute;top:22px;right:20px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);
+  color:#fff;border-radius:999px;padding:7px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;z-index:1}
+header.app .hreset:hover{background:rgba(255,255,255,.24)}
 .card{background:var(--card);border:none;border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
 .card h2{font-size:1.02rem;margin-bottom:4px;display:flex;align-items:center;gap:8px;padding-left:11px;border-left:4px solid var(--brand)}
 .card .sub{font-size:.8rem;color:var(--muted);margin-bottom:14px;padding-left:15px}
@@ -120,7 +123,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .empty{text-align:center;color:var(--muted);padding:24px 10px;font-size:.88rem;border:1.5px dashed var(--line);border-radius:12px}
 .foot{font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px}
 .hide{display:none!important}
-@media(max-width:620px){ .segrow{width:100%} }
+@media(max-width:620px){
+  .segrow{width:100%}
+  .seglbl{width:100%;margin:0 0 2px}
+  .segrow .mbtn{flex:1;padding:7px 4px;font-size:.75rem}
+}
 </style>
 </head>
 <body>
@@ -129,6 +136,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
   <header class="app">
     <h1>출장 길잡이</h1>
     <p>출장 동선 자동 생성</p>
+    <button class="hreset" id="resetBtn" type="button">↻ 초기화</button>
   </header>
 
   <!-- ── 입력 ── -->
@@ -163,8 +171,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 
     <div class="site-list" id="siteList"></div>
 
-    <div class="add-row" style="justify-content:space-between;margin-top:10px">
-      <button class="btn ghost" id="resetBtn" style="padding:7px 13px;font-size:.82rem">↻ 초기화</button>
+    <div class="add-row" style="justify-content:flex-end;margin-top:10px">
       <span class="count" id="countLbl">현재 0 / 15곳</span>
     </div>
 
@@ -477,12 +484,67 @@ function showSuggest(box, q, opts){
       e.stopPropagation();
       if(it.dataset.raw){ opts.onPick({addr:q, place:null, ll:null}); hideSuggs(); return; }
       var c=list[+it.dataset.i];
-      opts.onPick({addr:c.addr||c.place, place:c.place||null,
-                   ll:{lat:c.lat, lng:c.lng, provider:c.src}});
+      var pick={addr:c.addr||c.place, place:c.place||null,
+                ll:{lat:c.lat, lng:c.lng, provider:c.src}};
+      pushHist(pick);   // 검색 기록에 저장(자동완성용)
+      opts.onPick(pick);
       hideSuggs();
     });
   });
 }
+/* ===== 검색 기록 자동완성 =====
+   검색에서 고른 곳을 기록해두고, 타이핑하는 즉시(초성만 쳐도) 아래 드롭다운으로 제안한다.
+   예: "파주시농업기술센터"를 고른 적이 있으면 'ㅍ'만 눌러도 바로 뜬다. 일치 항목이 없으면 자동으로 숨김. */
+var HIST_LS = 'cg_search_history';
+var CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+function choseong(s){
+  var out='';
+  for(var i=0;i<s.length;i++){
+    var c=s.charCodeAt(i);
+    out += (c>=0xAC00&&c<=0xD7A3) ? CHO[Math.floor((c-0xAC00)/588)] : s[i];
+  }
+  return out;
+}
+function loadHist(){ try{ var a=JSON.parse(localStorage.getItem(HIST_LS)||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function pushHist(p){
+  if(!p||!p.addr||!p.ll) return;   // 좌표가 확정된 선택만 기록
+  var a=loadHist().filter(function(h){ return h.addr!==p.addr; });
+  a.unshift({addr:p.addr, name:p.place||p.name||null, ll:p.ll});
+  if(a.length>20) a.length=20;
+  try{ localStorage.setItem(HIST_LS, JSON.stringify(a)); }catch(e){}
+}
+function histMatch(q){
+  q=(q||'').replace(/\s+/g,''); if(!q) return [];
+  var choOnly=/^[ㄱ-ㅎ]+$/.test(q);
+  return loadHist().filter(function(h){
+    var t=((h.name||'')+' '+h.addr).replace(/\s+/g,'');
+    return choOnly ? choseong(t).indexOf(q)!==-1 : t.indexOf(q)!==-1;
+  }).slice(0,6);
+}
+function showHist(box, q, onPick){
+  hideSuggs();
+  var list=histMatch(q);
+  if(!list.length) return;   // 일치 없으면 드롭다운 표시 안 함(기존 것도 숨김)
+  var el=document.createElement('div'); el.className='sugg';
+  var h='<div class="hd">🕘 최근 검색 기록 — 누르면 바로 사용</div>';
+  list.forEach(function(c,i){
+    h+='<div class="it" data-i="'+i+'">'+
+       (c.name?'<span class="p">'+esc(c.name)+'</span>':'')+
+       '<span class="'+(c.name?'a':'p')+'">'+esc(c.addr)+'</span></div>';
+  });
+  el.innerHTML=h;
+  el.addEventListener('click',function(e){
+    var it=e.target.closest('.it'); if(!it) return;
+    e.stopPropagation();
+    var c=list[+it.dataset.i];
+    var p={addr:c.addr, place:c.name||null, ll:c.ll||null};
+    pushHist(p);   // 최근 사용으로 갱신
+    onPick(p);
+    hideSuggs();
+  });
+  box.appendChild(el);
+}
+
 function firstSiteLL(){ for(var i=0;i<sites.length;i++){ if(sites[i].ll) return sites[i].ll; } return null; }
 function openDepSuggest(){
   var q=normPrefix($("depAddr").value);
@@ -828,7 +890,22 @@ $("savedSel").addEventListener("change",function(){
     markStale();
   }
 });
-$("depAddr").addEventListener("input",markStale);
+$("depAddr").addEventListener("input",function(){
+  markStale();
+  showHist($("depBox"), this.value, function(p){
+    $("depAddr").value=p.addr;
+    depPicked = p.ll ? {addr:p.addr, ll:p.ll} : null;
+    markStale();
+  });
+});
+$("inAddr").addEventListener("input",function(){
+  showHist($("siteBox"), this.value, function(p){
+    if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
+    sites.push({addr:p.addr, name:p.place||null, ll:p.ll||null});
+    $("inAddr").value=""; $("inAddr").focus();
+    renderSites(); markStale();
+  });
+});
 $("retAddr").addEventListener("input",markStale);
 $("retDiff").addEventListener("change",function(){
   $("retRow").classList.toggle("hide", !this.checked);
