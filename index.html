@@ -372,7 +372,16 @@ function osrmTrip(coords, roundtrip){
 var depPicked = null;   // 출발지에서 선택한 {addr, ll}
 function hideSuggs(){ var s=document.querySelectorAll('.sugg'); for(var i=0;i<s.length;i++) s[i].remove(); }
 document.addEventListener('click', function(e){ if(!e.target.closest('.startbox')) hideSuggs(); });
-function kakaoCandidates(q){
+// 두 좌표 사이 직선거리(km) — 후보를 기준점(출발지 등)에서 가까운 순으로 정렬하는 데 사용
+function distKm(a,b){
+  var R=6371, d2r=Math.PI/180;
+  var dLat=(b.lat-a.lat)*d2r, dLng=(b.lng-a.lng)*d2r;
+  var s=Math.sin(dLat/2), t=Math.sin(dLng/2);
+  var h=s*s+Math.cos(a.lat*d2r)*Math.cos(b.lat*d2r)*t*t;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function fmtKm(d){ return (d<10? d.toFixed(1) : Math.round(d))+"km"; }
+function kakaoCandidates(q, ref){
   return loadKakao().then(function(){
     return new Promise(function(resolve){
       var out=[], geo=new kakao.maps.services.Geocoder();
@@ -382,13 +391,14 @@ function kakaoCandidates(q){
                     lat:parseFloat(r.y), lng:parseFloat(r.x), src:'카카오'});
         });
         var ps=new kakao.maps.services.Places();
+        var opt = ref ? {location:new kakao.maps.LatLng(ref.lat, ref.lng)} : undefined;   // 기준점 주변 우선
         ps.keywordSearch(q,function(r2,s2){
           if(s2===kakao.maps.services.Status.OK&&r2) r2.forEach(function(p){
             out.push({addr:p.road_address_name||p.address_name, place:p.place_name,
                       lat:parseFloat(p.y), lng:parseFloat(p.x), src:'카카오'});
           });
           resolve(out);
-        });
+        }, opt);
       });
     });
   });
@@ -401,8 +411,8 @@ function nominatimCandidates(q){
     });
   });
 }
-function searchCandidates(q){
-  var p = kakaoKey() ? kakaoCandidates(q).catch(function(){ return nominatimCandidates(q); }) : nominatimCandidates(q);
+function searchCandidates(q, ref){
+  var p = kakaoKey() ? kakaoCandidates(q, ref).catch(function(){ return nominatimCandidates(q); }) : nominatimCandidates(q);
   return p.then(function(list){
     var seen={}, out=[];
     list.forEach(function(c){
@@ -411,6 +421,10 @@ function searchCandidates(q){
       var k=(c.addr||'')+'|'+(c.place||'');
       if(seen[k]) return; seen[k]=1; out.push(c);
     });
+    if(ref){   // 기준점(출발지 등)에서 가까운 순 정렬 — 동명 도로의 타지역 후보가 아래로 밀림
+      out.forEach(function(c){ c.d=distKm(ref,c); });
+      out.sort(function(a,b){ return a.d-b.d; });
+    }
     return out.slice(0,8);
   }).catch(function(){ return []; });
 }
@@ -419,15 +433,16 @@ function showSuggest(box, q, opts){
   var el=document.createElement('div'); el.className='sugg';
   el.innerHTML='<div class="hd">⏳ "'+esc(q)+'" 검색 중...</div>';
   box.appendChild(el);
-  searchCandidates(q).then(function(list){
+  searchCandidates(q, opts.ref||null).then(function(list){
     if(!document.body.contains(el)) return;
-    var h = list.length ? '<div class="hd">검색 결과 — 원하는 곳을 선택하세요</div>'
+    var h = list.length ? '<div class="hd">검색 결과 — '+(opts.ref?'가까운 순으로 정렬했습니다':'원하는 곳을 선택하세요')+'</div>'
                         : '<div class="hd">검색 결과가 없습니다 — 주소를 더 자세히 쓰거나 그대로 추가하세요</div>';
     list.forEach(function(c,i){
       h+='<div class="it" data-i="'+i+'">'+
          (c.place?'<span class="p">'+esc(c.place)+'</span>':'')+
          '<span class="'+(c.place?'a':'p')+'">'+esc(c.addr||'')+'</span>'+
          (c.sub&&c.sub!==c.addr?'<span class="a">지번: '+esc(c.sub)+'</span>':'')+
+         (c.d!=null?'<span class="a">📍 '+(opts.refLabel||'기준점')+'에서 약 '+fmtKm(c.d)+'</span>':'')+
          '</div>';
     });
     h+='<div class="it raw" data-raw="1">➕ 입력한 그대로 사용 — "'+esc(q)+'"</div>';
@@ -443,10 +458,11 @@ function showSuggest(box, q, opts){
     });
   });
 }
+function firstSiteLL(){ for(var i=0;i<sites.length;i++){ if(sites[i].ll) return sites[i].ll; } return null; }
 function openDepSuggest(){
   var q=normPrefix($("depAddr").value);
   if(!q){ toast("출발지 주소를 입력하세요."); $("depAddr").focus(); return; }
-  showSuggest($("depBox"), q, {onPick:function(p){
+  showSuggest($("depBox"), q, {ref:firstSiteLL(), refLabel:"출장지", onPick:function(p){
     $("depAddr").value=p.addr;
     depPicked = p.ll ? {addr:p.addr, ll:p.ll} : null;
     markStale();
@@ -457,7 +473,8 @@ function openSiteSuggest(){
   if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
   var q=normPrefix($("inAddr").value);
   if(!q){ toast("출장지 주소를 입력하세요."); $("inAddr").focus(); return; }
-  showSuggest($("siteBox"), q, {onPick:function(p){
+  var ref=(depPicked&&depPicked.ll)||firstSiteLL();
+  showSuggest($("siteBox"), q, {ref:ref, refLabel:"출발지", onPick:function(p){
     sites.push({addr:p.addr, name:p.place||null, ll:p.ll||null});
     $("inAddr").value=""; $("inAddr").focus();
     renderSites(); markStale();
