@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>출장 길잡이 — 출장 동선</title>
+<meta name="theme-color" content="#0b6e4f">
+<!-- iOS 홈 화면 단독 실행(standalone) 모드에서 입력창 포커스가 막히는 알려진 버그를 피하기 위해
+     apple-mobile-web-app-capable 등 standalone 강제 설정을 제거. 홈 화면 아이콘은 아래 apple-touch-icon으로 유지되며,
+     아이콘을 누르면 Safari 화면으로 열려 입력이 정상 동작한다. (Android도 manifest를 browser로 두어 동일하게 처리) -->
+<meta name="apple-mobile-web-app-title" content="출장 길잡이">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --paju:#0b6e4f; --paju2:#0a5c42; --accent:#1565c0; --naver:#03c75a; --kakao:#fee500; --kakao-ink:#3a1d1d;
+  --ink:#1b1f23; --muted:#5b6770; --line:#dfe3e6; --bg:#f4f6f8; --card:#fff; --warn:#b54708; --warnbg:#fff7ed;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:16px 16px 64px}
+header.app{background:linear-gradient(135deg,var(--paju),var(--paju2));color:#fff;border-radius:14px;padding:20px 22px;margin-bottom:16px}
+header.app h1{font-size:1.45rem;letter-spacing:-.02em}
+header.app p{opacity:.9;font-size:.85rem;margin-top:4px}
+.badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+  font-size:.7rem;padding:2px 9px;border-radius:20px;margin-top:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.card .sub{font-size:.8rem;color:var(--muted);margin-bottom:14px}
+label.fl{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin:0 0 5px}
+input[type=text],input[type=number],select,textarea{
+  width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:.92rem;font-family:inherit;color:var(--ink);background:#fff}
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%235b6770' stroke-width='1.6' fill='none'/></svg>");background-repeat:no-repeat;background-position:right 12px center}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--paju);box-shadow:0 0 0 3px rgba(11,110,79,.12)}
+.startbox{display:flex;align-items:center;gap:8px;background:#f0f7f3;border:1px dashed var(--paju);border-radius:10px;padding:9px 11px;margin-bottom:6px}
+.startbox .pin{min-width:34px;height:24px;padding:0 7px;border-radius:12px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;flex-shrink:0}
+.startbox input{flex:1;min-width:0;background-color:#fff}
+.startbox.ret{border-color:var(--accent);background:#eef4fb}
+.startbox.ret .pin{background:#7c3aed}
+.savebtn{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:8px;height:36px;padding:0 11px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit;white-space:nowrap}
+.savebtn:hover{background:#f0f2f4;color:var(--ink)}
+.prefix-in{flex:0 0 128px;width:128px!important;background:#eef2f5!important;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-weight:600;color:var(--muted)!important;text-align:center;white-space:nowrap}
+.chk-row{display:flex;align-items:center;gap:7px;font-size:.85rem;cursor:pointer;margin:10px 0 6px;user-select:none}
+.chk-row input{width:16px;height:16px;accent-color:var(--paju);cursor:pointer}
+.site-list{margin:12px 0 6px;display:flex;flex-direction:column;gap:8px}
+.site-item{display:flex;gap:8px;align-items:center;background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.site-item .num{width:24px;height:24px;border-radius:50%;background:#e8edf1;color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;flex-shrink:0}
+.site-item .body{flex:1;min-width:0}
+.site-item .nm{font-weight:600;font-size:.9rem;word-break:break-all}
+.mini-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{border:1px solid var(--line);background:#fff;border-radius:8px;width:30px;height:30px;font-size:.85rem;cursor:pointer;color:var(--muted)}
+.icon-btn:hover{background:#f0f2f4;color:var(--ink)}
+.btn{border:none;border-radius:10px;padding:11px 16px;font-size:.9rem;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--paju);color:#fff;width:100%}
+.btn.primary:hover{background:var(--paju2)}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn.ghost:hover{background:#f5f7f8}
+.btn.block{width:100%}
+.add-row{display:flex;gap:8px;margin-top:4px;align-items:center}
+.count{font-size:.78rem;color:var(--muted)}
+.count.full{color:var(--warn);font-weight:600}
+.notice{background:var(--warnbg);border:1px solid #fed7aa;color:var(--warn);border-radius:10px;padding:11px 13px;font-size:.8rem;margin-bottom:12px;display:flex;gap:8px}
+.notice .i{flex-shrink:0}
+.notice.info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.summary .box{background:#f0f7f3;border-radius:10px;padding:11px;text-align:center}
+.summary .v{font-size:1.15rem;font-weight:700;color:var(--paju2)}
+.summary .l{font-size:.7rem;color:var(--muted);margin-top:2px}
+#map{height:300px;border-radius:12px;margin-bottom:14px;border:1px solid var(--line);z-index:0}
+.leaflet-div-icon{background:transparent;border:none}
+.mk{display:flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:13px;color:#fff;font-size:.72rem;font-weight:700;box-shadow:0 1px 5px rgba(0,0,0,.35);border:2px solid #fff;white-space:nowrap}
+.mk.hq{background:var(--accent)}
+.mk.rt{background:#7c3aed}
+.mk.st{background:#e05a2b}
+.stoplist{display:flex;flex-direction:column;gap:10px}
+.stop{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fff}
+.stop.hq{background:#f0f7f3;border-color:#cfe6da}
+.stop-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.stop-badge{flex:0 0 auto;min-width:30px;height:30px;padding:0 8px;border-radius:9px;background:var(--paju);color:#fff;font-weight:700;font-size:.95rem;display:flex;align-items:center;justify-content:center}
+.stop.hq .stop-badge{background:var(--accent);font-size:.74rem}
+.stop-addr{font-size:.95rem;font-weight:600;line-height:1.4;word-break:break-all;padding-top:4px}
+.mbtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 6px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--ink);font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.mbtn:active{background:#eef1f3}
+.mbtn:disabled{opacity:.4;cursor:not-allowed;background:#f5f5f5}
+.stale-dim{opacity:.4;filter:grayscale(40%);pointer-events:none;transition:opacity .2s}
+.mbtn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.mbtn.n{border-color:#9fe3bf}.mbtn.n .dot{background:#03c75a}
+.mbtn.k{border-color:#ecdf7a;background:#fffdf2}.mbtn.k .dot{background:#fbe000}
+.segrow{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.seglbl{font-size:.74rem;color:var(--muted);margin-right:2px}
+.segrow .mbtn{padding:7px 14px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+  padding:11px 18px;border-radius:24px;font-size:.85rem;opacity:0;pointer-events:none;transition:.25s;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{text-align:center;color:var(--muted);padding:26px 10px;font-size:.88rem}
+.foot{font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px}
+.hide{display:none!important}
+@media(max-width:620px){ .segrow{width:100%} .prefix-in{flex:0 0 104px;width:104px!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app">
+    <h1>🧭 출장 길잡이</h1>
+    <p>출장 동선 자동 생성</p>
+    <span class="badge">출발지 자유 검색·저장 · 복귀지 변경 가능 · 경유 출장지 최대 15곳</span>
+  </header>
+
+  <!-- ── 입력 ── -->
+  <section class="card">
+    <h2>📍 출장지 입력</h2>
+    <div class="sub">출발지 주소를 입력하고(★ 저장 가능), 출장지 주소를 추가하세요.</div>
+
+    <label class="fl">출발 지점 — 주소 자유 입력 (예: 경기도 파주시 시청로 50)</label>
+    <div class="startbox">
+      <span class="pin">출발</span>
+      <input type="text" id="depAddr" placeholder="출발지 주소 입력" maxlength="120">
+      <button class="savebtn" id="saveDepBtn" type="button" title="현재 출발지를 즐겨찾기에 저장">★ 저장</button>
+    </div>
+    <div class="add-row">
+      <select id="savedSel" style="flex:1"><option value="">★ 저장된 출발지에서 선택…</option></select>
+      <button class="icon-btn" id="delSavedBtn" type="button" title="선택한 저장 출발지 삭제">✕</button>
+    </div>
+
+    <label class="chk-row"><input type="checkbox" id="retDiff"> 복귀 지점을 출발지와 다르게 설정 <span style="color:var(--muted);font-weight:400">(기본: 출발지로 복귀)</span></label>
+    <div class="startbox ret hide" id="retRow">
+      <span class="pin">복귀</span>
+      <input type="text" id="retAddr" placeholder="복귀지 주소 입력 (비우면 출발지로 복귀)" maxlength="120">
+    </div>
+
+    <div class="site-list" id="siteList"></div>
+
+    <label class="fl" style="margin-top:12px">출장지 추가 — 왼쪽 상자는 주소 앞에 자동으로 붙일 지역(수정·삭제 가능)</label>
+    <div class="add-row">
+      <input type="text" id="prefixTxt" class="prefix-in" value="경기도 파주시" maxlength="30" title="주소 앞에 자동으로 붙일 지역명 (비우면 붙이지 않음)">
+      <input type="text" id="inAddr" style="flex:1;min-width:0" placeholder="이후 주소 (예: 문산읍 선유리 1402)" maxlength="120">
+    </div>
+    <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 추가</button>
+
+    <div class="add-row" style="justify-content:space-between;margin-top:10px">
+      <button class="btn ghost" id="resetBtn" style="padding:7px 13px;font-size:.82rem">↻ 초기화</button>
+      <span class="count" id="countLbl">현재 0 / 15곳</span>
+    </div>
+
+    <details class="settings" style="margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:0 12px">
+      <summary style="cursor:pointer;padding:11px 0;font-size:.85rem;font-weight:600;color:var(--paju2);list-style:none">⚙️ 지오코딩 설정 (고급)</summary>
+      <div style="padding:0 0 14px">
+        <p class="foot" style="text-align:left;margin:0 0 10px;line-height:1.6">
+          주소를 좌표로 변환한 뒤 <b>도로 기준 최적 방문순서·실거리·실시간</b>(OSRM)으로 계산합니다.
+          기본은 OpenStreetMap(무료·무키)이며, <b>카카오 JavaScript 키</b>를 넣으면 한국 주소 정확도가 높아집니다(실패 시 자동 OSM 폴백).
+        </p>
+        <label class="fl">카카오 JavaScript 키 (선택)</label>
+        <input type="text" id="kakaoKey" autocomplete="off" spellcheck="false">
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+          <button class="btn ghost" id="testKeyBtn" type="button" style="padding:8px 14px;font-size:.82rem">🔌 지오코딩 연결 테스트</button>
+          <span id="keyStatus" style="font-size:.8rem;color:var(--muted)"></span>
+        </div>
+        <label class="fl" style="margin-top:12px">임시계산용(좌표변환 실패 시) — 구간 이동(분) / 거리(km)</label>
+        <div style="display:flex;gap:10px">
+          <input type="number" id="travel" value="15" min="0" max="180" step="5">
+          <input type="number" id="legkm" value="6" min="0" max="60" step="0.5">
+        </div>
+      </div>
+    </details>
+
+    <button class="btn primary" id="calcBtn" style="margin-top:14px">🧮 출장 순서 계산</button>
+  </section>
+
+  <!-- ── 결과 ── -->
+  <section class="card hide" id="resultCard">
+    <h2>🗂️ 출장 순서 결과</h2>
+    <div class="notice" id="staleNotice" style="display:none"><span class="i">⚠️</span><span>출발지·복귀지 또는 출장지 목록이 변경되었습니다. 아래 결과는 <b>변경 전 계산</b>입니다 — 다시 계산해 주세요.</span></div>
+    <div class="notice" id="modeNotice"><span class="i">ℹ️</span><span>계산 방식이 여기에 표시됩니다.</span></div>
+
+    <div class="summary" id="resultStaleArea">
+      <div class="box"><div class="v" id="sTotal">0</div><div class="l">총 출장지</div></div>
+      <div class="box"><div class="v" id="sTime">0분</div><div class="l">총 주행 시간</div></div>
+      <div class="box"><div class="v" id="sDist">0km</div><div class="l">총 이동거리</div></div>
+    </div>
+
+    <div id="map" class="hide"></div>
+
+    <div id="resultBody" class="stoplist"></div>
+
+    <p class="foot" style="text-align:left;margin-top:12px">
+      ※ 지도 버튼은 위치 확인·이동 참고용 보조 기능입니다(무료 공개 링크). ‘길찾기’는 스마트폰에서는 네이버지도/카카오맵 <b>앱</b>으로, PC에서는 <b>웹 지도</b>로 열립니다. 실제 교통상황은 지도앱에서 확인하세요.
+    </p>
+  </section>
+
+  <p class="foot">출장 길잡이 · 출장 동선 자동 생성 내부 업무도구</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ===== 상태 ===== */
+var MAX = 15;
+var sites = [];          // {addr, ll}
+var ordered = [];        // 방문 순서(도로 최적 or 입력 순서)
+var seq = [];            // [출발, ...ordered, 복귀]
+var depStop = null;      // 출발 지점 {name,addr,ll}
+var retStop = null;      // 복귀 지점 {name,addr,ll} — 출발지와 같으면 depStop 그대로
+var sameRet = true;      // 복귀지 = 출발지 여부
+var routeGeom = null;    // OSRM 도로 경로 geometry([lng,lat] 배열)
+var calcMode = 'temp';
+var DEFAULT_KAKAO = '';  // 자기 도메인에 등록한 카카오 JS 키를 넣으면 기본 내장됨(없으면 OSM으로 동작)
+var KEY_LS = 'cg_kakao_key';
+var DEP_LS = 'cg_saved_deps';     // 저장된 출발지 목록(JSON 배열)
+var LASTDEP_LS = 'cg_last_dep';   // 마지막 사용 출발지
+var PREFIX_LS = 'cg_prefix';      // 출장지 자동 접두 지역명
+var NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+var OSRM = 'https://router.project-osrm.org/trip/v1/driving/';
+var kakaoSDK = null;
+var lastGeoProvider = null;   // 직전 계산에서 '실제로' 좌표를 만들어낸 제공자(폴백 여부 반영)
+function kakaoKey(){ return ($("kakaoKey").value||"").trim(); }
+function geoProvider(){ return kakaoKey() ? '카카오' : 'OpenStreetMap'; }  // 시도 예정 제공자(성공 보장 아님)
+
+/* ===== 유틸 ===== */
+function $(id){ return document.getElementById(id); }
+function enc(s){ return encodeURIComponent((s||"").trim()); }
+function esc(s){ return (s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1900); }
+function num(id,def){ var el=$(id); var v=el?parseFloat(el.value):NaN; return isNaN(v)?def:v; }
+function delay(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+// 주소 자동 보정: 접두 지역명(수정 가능)이 없으면 앞에 붙임.
+// 입력에 접두의 마지막 낱말(예: "파주시")이 이미 있거나 첫 낱말(예: "경기도")로 시작하면 그대로 둠.
+function prefixVal(){ return ($("prefixTxt").value||"").replace(/\s+/g,' ').trim(); }
+function normPrefix(s){
+  s=(s||"").replace(/\s+/g,' ').trim();
+  if(!s) return "";
+  var p=prefixVal(); if(!p) return s;
+  var words=p.split(' '), last=words[words.length-1], first=words[0];
+  if(s.indexOf(last)!==-1 || s.indexOf(first)===0) return s;
+  return p + " " + s;
+}
+
+/* ===== 지도앱 링크 ===== */
+var IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+function openUrl(url){ if(/^https?:/.test(url)) window.open(url,"_blank","noopener"); else window.location.href=url; }
+function naverSearchUrl(q){ return "https://map.naver.com/p/search/"+enc(q); }
+function kakaoSearchUrl(q){ return "https://map.kakao.com/?q="+enc(q); }
+function kakaoRouteUrl(f,t){ return "https://map.kakao.com/?sName="+enc(f)+"&eName="+enc(t); }
+function linkName(p){ return ((p.name||p.addr||"").replace(/,/g,' ')).trim(); }
+// 구간 길찾기: 모바일=앱 스킴, PC=웹 길찾기. 좌표 없으면 텍스트 기반 웹으로 폴백
+function segNaverUrl(from,to){
+  if(from.ll&&to.ll){
+    if(IS_MOBILE) return "nmap://route/car?slat="+from.ll.lat+"&slng="+from.ll.lng+"&sname="+enc(linkName(from))+
+      "&dlat="+to.ll.lat+"&dlng="+to.ll.lng+"&dname="+enc(linkName(to))+"&appname=chuljang-giljabi";
+    return "https://map.naver.com/index.nhn?menu=route&pathType=0"+
+      "&slng="+from.ll.lng+"&slat="+from.ll.lat+"&stext="+enc(linkName(from))+
+      "&elng="+to.ll.lng+"&elat="+to.ll.lat+"&etext="+enc(linkName(to));
+  }
+  return naverSearchUrl(to.addr||to.name);
+}
+function segKakaoUrl(from,to){
+  if(from.ll&&to.ll){
+    if(IS_MOBILE) return "kakaomap://route?sp="+from.ll.lat+","+from.ll.lng+"&ep="+to.ll.lat+","+to.ll.lng+"&by=CAR";
+    return "https://map.kakao.com/link/from/"+enc(linkName(from))+","+from.ll.lat+","+from.ll.lng+
+      "/to/"+enc(linkName(to))+","+to.ll.lat+","+to.ll.lng;
+  }
+  return kakaoRouteUrl(from.addr||from.name, to.addr||to.name);
+}
+
+/* ===== 지오코딩 (카카오 → OSM 폴백) + OSRM ===== */
+function loadKakao(){
+  if(kakaoSDK) return kakaoSDK;
+  kakaoSDK = new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&libraries=services&appkey='+encodeURIComponent(kakaoKey());
+    s.onload=function(){ if(window.kakao&&kakao.maps&&kakao.maps.load){ kakao.maps.load(function(){ resolve(true); }); } else reject({type:'SDK'}); };
+    s.onerror=function(){ kakaoSDK=null; reject({type:'SDK'}); };
+    document.head.appendChild(s);
+  });
+  return kakaoSDK;
+}
+function geocodeKakaoStr(q){
+  return loadKakao().then(function(){
+    return new Promise(function(resolve,reject){
+      var geo=new kakao.maps.services.Geocoder();
+      geo.addressSearch(q,function(res,status){
+        if(status===kakao.maps.services.Status.OK&&res[0]){ resolve({lng:parseFloat(res[0].x),lat:parseFloat(res[0].y),provider:'카카오'}); return; }
+        var ps=new kakao.maps.services.Places();
+        ps.keywordSearch(q,function(r2,s2){
+          if(s2===kakao.maps.services.Status.OK&&r2[0]) resolve({lng:parseFloat(r2[0].x),lat:parseFloat(r2[0].y),provider:'카카오'});
+          else reject({type:'NOT_FOUND',addr:q});
+        });
+      });
+    });
+  });
+}
+// Nominatim 자체 속도제한(1초 1요청 정책): 호출 경로(순수 OSM 모드든, 카카오 실패 후 폴백이든)에
+// 관계없이 실제 Nominatim 호출 간격이 항상 1.1초 이상 벌어지도록 게이트에서 직접 보장한다.
+var lastNominatimAt = 0;
+function nominatimGate(){
+  var now=Date.now();
+  var wait = (lastNominatimAt + 1100) - now;
+  lastNominatimAt = Math.max(now, lastNominatimAt + 1100);
+  return wait>0 ? delay(wait) : Promise.resolve();
+}
+function geocodeNominatimStr(q){
+  return nominatimGate().then(function(){
+    var url=NOMINATIM+'?format=json&limit=1&countrycodes=kr&accept-language=ko&q='+encodeURIComponent(q);
+    return fetch(url,{headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(arr){
+      if(arr&&arr[0]) return {lng:parseFloat(arr[0].lon),lat:parseFloat(arr[0].lat),provider:'OpenStreetMap'};
+      throw {type:'NOT_FOUND',addr:q};
+    });
+  });
+}
+// 활성 제공자 + 실패 시 반대편으로 한 번 더 시도 (카카오 실패 → OSM 폴백도 위 게이트로 속도제한됨)
+function geocodeStr(q){
+  if(kakaoKey()) return geocodeKakaoStr(q).catch(function(){ return geocodeNominatimStr(q); });
+  return geocodeNominatimStr(q);
+}
+function simplifyAddr(a){ if(!a) return ""; var s=a.replace(/\s*\d+(-\d+)?(번지|호)?\s*$/,"").trim(); return (s&&s!==a)?s:""; }
+// Nominatim(OSM)은 "경기도 파주시 문산읍 선유리"처럼 행정계층을 3단계 이상 이어 붙이면
+// 못 찾고, "파주시 선유리"·"문산읍 선유리"·"선유리"처럼 짧은 조합은 찾는다.
+// → 실패 시 점점 짧은 조합으로 재시도하는 후보 목록을 만든다(중복 제거, 정확한 것부터).
+function geoCandidates(addr, name){
+  var out=[]; function add(s){ s=(s||"").replace(/\s+/g,' ').trim(); if(s && out.indexOf(s)===-1) out.push(s); }
+  add(addr);
+  var simp=simplifyAddr(addr||""); add(simp);
+  var base=simp||addr||"";
+  var t=base.split(' ');
+  if(t.length>=2){
+    var last=t[t.length-1], city=null;
+    for(var i=0;i<t.length-1;i++){ if(/(시|군)$/.test(t[i])) city=t[i]; }
+    if(city) add(city+' '+last);            // 예: "파주시 선유리"
+    add(t[t.length-2]+' '+last);            // 예: "문산읍 선유리"
+    add(last);                              // 최후 수단: "선유리"
+  }
+  if(!out.length) add(name);
+  return out;
+}
+function geocodeOne(pt){
+  var cands=geoCandidates(pt.addr, pt.name);
+  var i=0;
+  function next(){ return geocodeStr(cands[i]).catch(function(){ i++; if(i<cands.length) return next(); throw {type:'NOT_FOUND', addr:pt.addr||pt.name}; }); }
+  return next();
+}
+// 복귀지=출발지면 왕복(roundtrip), 다르면 출발 고정·도착 고정(destination=last) 편도 최적화
+function osrmTrip(coords, roundtrip){
+  var path=coords.map(function(c){return c.lng+','+c.lat;}).join(';');
+  var opt = roundtrip ? 'source=first&roundtrip=true' : 'source=first&destination=last&roundtrip=false';
+  var url=OSRM+path+'?'+opt+'&overview=full&geometries=geojson&annotations=false';
+  return fetch(url).then(function(r){return r.json();}).then(function(j){
+    if(!j||j.code!=='Ok'||!j.trips||!j.trips.length) throw {type:'OSRM'};
+    return j;
+  });
+}
+
+/* ===== 출발지·복귀지 ===== */
+function getDep(){ var a=normPrefix($("depAddr").value); return a?{name:"출발지", addr:a, ll:null}:null; }
+function getRet(){
+  if(!$("retDiff").checked) return null;               // 복귀지 = 출발지
+  var a=normPrefix($("retAddr").value);
+  return a?{name:"복귀지", addr:a, ll:null}:null;      // 입력 비우면 출발지로 복귀
+}
+
+/* ===== 출발지 즐겨찾기(localStorage) ===== */
+function loadSavedDeps(){ try{ var a=JSON.parse(localStorage.getItem(DEP_LS)||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function storeSavedDeps(arr){ try{ localStorage.setItem(DEP_LS, JSON.stringify(arr)); }catch(e){} }
+function renderSavedDeps(){
+  var arr=loadSavedDeps(), sel=$("savedSel");
+  sel.innerHTML='<option value="">★ 저장된 출발지에서 선택… ('+arr.length+'개)</option>'+
+    arr.map(function(s,i){ return '<option value="'+i+'">'+esc(s)+'</option>'; }).join("");
+}
+function saveDep(){
+  var a=normPrefix($("depAddr").value);
+  if(!a){ toast("저장할 출발지 주소를 먼저 입력하세요."); $("depAddr").focus(); return; }
+  var arr=loadSavedDeps();
+  if(arr.indexOf(a)!==-1){ toast("이미 저장된 출발지입니다."); return; }
+  arr.push(a); storeSavedDeps(arr); renderSavedDeps();
+  $("savedSel").value=String(arr.length-1);
+  toast("출발지를 저장했습니다. ★");
+}
+function delSavedDep(){
+  var sel=$("savedSel"), v=sel.value;
+  if(v===""){ toast("삭제할 저장 출발지를 목록에서 먼저 선택하세요."); return; }
+  var arr=loadSavedDeps(); arr.splice(+v,1); storeSavedDeps(arr); renderSavedDeps();
+  toast("저장 출발지를 삭제했습니다.");
+}
+function saveLastDep(){ try{ localStorage.setItem(LASTDEP_LS, normPrefix($("depAddr").value)); }catch(e){} }
+
+/* ===== 입력 렌더 ===== */
+function renderSites(){
+  var box=$("siteList");
+  if(!sites.length) box.innerHTML='<div class="empty">아직 추가된 출장지가 없습니다. 아래에서 주소를 입력해 추가하세요.</div>';
+  else box.innerHTML = sites.map(function(s,i){
+    return '<div class="site-item"><span class="num">'+(i+1)+'</span>'+
+      '<div class="body"><div class="nm">'+esc(s.addr)+'</div></div>'+
+      '<div class="mini-btns"><button class="icon-btn" data-act="del" data-i="'+i+'" title="삭제">✕</button></div></div>';
+  }).join("");
+  var c=$("countLbl"); c.textContent="현재 "+sites.length+" / "+MAX+"곳"; c.className="count"+(sites.length>=MAX?" full":"");
+}
+// 계산 결과가 표시된 뒤 출발지/복귀지/출장지가 바뀌면, 화면에 남은 결과가 낡은
+// 정보임을 명확히 표시한다(다시 계산 전까지 길찾기 버튼도 비활성화).
+function markStale(){
+  if($("resultCard").classList.contains("hide")) return;   // 아직 계산 결과 없음
+  $("staleNotice").style.display="flex";
+  $("resultStaleArea").classList.add("stale-dim");
+  $("resultBody").classList.add("stale-dim");
+  $("map").classList.add("stale-dim");
+}
+function clearStale(){
+  $("staleNotice").style.display="none";
+  $("resultStaleArea").classList.remove("stale-dim");
+  $("resultBody").classList.remove("stale-dim");
+  $("map").classList.remove("stale-dim");
+}
+function addSite(){
+  if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
+  var addr=normPrefix($("inAddr").value);
+  if(!addr){ toast("주소를 입력하세요."); return; }
+  sites.push({addr:addr, ll:null});
+  $("inAddr").value=""; $("inAddr").focus();
+  renderSites();
+  markStale();
+}
+function resetSites(){
+  sites=[]; ordered=[]; seq=[]; routeGeom=null;
+  renderSites();
+  clearStale();
+  $("resultCard").classList.add("hide");
+  $("map").classList.add("hide");
+  toast("출장지 목록을 초기화했습니다.");
+}
+$("siteList").addEventListener("click",function(e){ var b=e.target.closest("button"); if(b&&b.dataset.act==="del"){ sites.splice(+b.dataset.i,1); renderSites(); markStale(); } });
+$("addBtn").addEventListener("click",addSite);
+$("resetBtn").addEventListener("click",resetSites);
+$("inAddr").addEventListener("keydown",function(e){ if(e.key==="Enter") addSite(); });
+
+/* ===== 계산 ===== */
+function calculate(){
+  if(!getDep()){ toast("출발지 주소를 입력하세요."); $("depAddr").focus(); return; }
+  if(!sites.length){ toast("출장지를 1곳 이상 추가하세요."); return; }
+  saveLastDep();
+  var btn=$("calcBtn"); var label=btn.textContent; btn.disabled=true;
+  btn.textContent="⏳ 좌표 변환·도로 경로 계산 중...";
+  calcRoad().catch(function(e){ calcTemp(geoErrMsg(e)); }).then(function(){ btn.disabled=false; btn.textContent=label; });
+}
+function geoErrMsg(e){
+  if(!e) return "도로 경로 계산 실패";
+  if(e.type==='SDK') return "카카오 SDK 로드 실패";
+  if(e.type==='NOT_FOUND'){
+    if(e.list&&e.list.length){ var h=e.list.slice(0,2).join(", "); return "좌표변환 실패: "+h+(e.list.length>2?" 외 "+(e.list.length-2)+"건":""); }
+    return "좌표변환 실패: "+(e.addr||"");
+  }
+  if(e.type==='OSRM') return "도로 경로(OSRM) 계산 실패";
+  return "좌표·경로 호출 실패(네트워크)";
+}
+function calcRoad(){
+  depStop = getDep();
+  retStop = getRet();
+  sameRet = !retStop;
+  if(sameRet) retStop = depStop;
+  var pts=[depStop].concat(sites);
+  if(!sameRet) pts.push(retStop);
+  var coords=new Array(pts.length), fails=[];
+  var chain=Promise.resolve();
+  pts.forEach(function(pt,idx){
+    chain=chain.then(function(){
+      $("calcBtn").textContent="⏳ 좌표 변환 "+(idx+1)+"/"+pts.length+"...";
+      return geocodeOne(pt).then(function(c){ coords[idx]=c; pt.ll=c; }, function(){ if(idx>0) fails.push(pt.addr||pt.name); });
+    });
+  });
+  return chain.then(function(){
+    if(coords[0]==null) throw {type:'NOT_FOUND', addr:depStop.addr};
+    if(fails.length) throw {type:'NOT_FOUND', list:fails};
+    $("calcBtn").textContent="⏳ 도로 경로 계산 중...";
+    return osrmTrip(coords, sameRet).then(function(trip){
+      var wps=trip.waypoints, tr=trip.trips[0], legs=tr.legs;
+      // 중간 경유지(출장지)만 최적 순서로 정렬 — 별도 복귀지는 항상 맨 끝(destination=last) 고정
+      var arr=[]; for(var i=1;i<=sites.length;i++) arr.push({site:sites[i-1], wp:wps[i].waypoint_index});
+      arr.sort(function(a,b){ return a.wp-b.wp; });
+      ordered=arr.map(function(o){ return o.site; });
+      var travelMin=0, distM=0;
+      for(var j=0;j<legs.length;j++){ travelMin+=Math.round(legs[j].duration/60); distM+=legs[j].distance; }
+      routeGeom = (tr.geometry&&tr.geometry.coordinates)||null;
+      calcMode='road';
+      // 실제로 어느 지오코더가 좌표를 만들어냈는지 집계(카카오 키가 있어도
+      // 일부/전체가 OpenStreetMap 폴백으로 처리됐을 수 있음 — 표시가 실상과
+      // 달라지지 않도록 실제 사용 제공자를 기록한다).
+      var provSet={}; coords.forEach(function(c){ if(c&&c.provider) provSet[c.provider]=true; });
+      var provKeys=Object.keys(provSet);
+      lastGeoProvider = provKeys.length===1 ? provKeys[0] : (provKeys.length>1 ? provKeys.join('+')+' 혼합' : geoProvider());
+      renderAll({totalMin:travelMin, totalKm:distM/1000});
+      toast("도로 기반 최적 경로로 계산했습니다.");
+    });
+  });
+}
+function calcTemp(reason){
+  depStop=getDep(); retStop=getRet(); sameRet=!retStop; if(sameRet) retStop=depStop;
+  ordered=sites.slice();
+  var legMin=num("travel",15), legKm=num("legkm",6), legs=ordered.length+1;
+  routeGeom=null; calcMode='temp';
+  setModeNotice('temp',reason);
+  renderAll({totalMin:legMin*legs, totalKm:legKm*legs});
+}
+function fmtDur(m){ m=Math.round(m); return m>=60? Math.floor(m/60)+"시간 "+(m%60)+"분" : m+"분"; }
+
+function renderAll(meta){
+  clearStale();
+  if(calcMode==='road') setModeNotice('road');
+  seq=[depStop].concat(ordered).concat([retStop]);
+  $("sTotal").textContent = ordered.length+"곳";
+  $("sTime").textContent  = fmtDur(meta.totalMin);
+  $("sDist").textContent  = meta.totalKm.toFixed(1)+"km";
+  renderResult();
+  if(calcMode==='road') renderMap(); else $("map").classList.add("hide");
+  $("resultCard").classList.remove("hide");
+  $("resultCard").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function setModeNotice(mode,reason){
+  var box=$("modeNotice"); if(!box) return;
+  if(mode==='road'){ box.className="notice info";
+    var provLabel = lastGeoProvider || geoProvider();
+    var provNote = (kakaoKey() && provLabel.indexOf('카카오')!==0) ? ' — 카카오 좌표변환 실패로 OpenStreetMap이 대신 사용됨' : '';
+    var tripNote = sameRet ? '' : ' 복귀지가 달라 <b>출발 고정·복귀 고정 편도 최적화</b>로 계산했습니다.';
+    box.innerHTML='<span class="i">🛰️</span><span><b>도로 기반 최적 경로</b>로 계산했습니다 ('+esc(provLabel)+' 좌표변환 + OSRM 도로 경로'+provNote+').'+tripNote+' 자동차 도로 기준 추정치이며 실제 교통상황과 다를 수 있습니다.</span>';
+  } else { box.className="notice";
+    box.innerHTML='<span class="i">⚠️</span><span><b>임시 계산(입력 순서)</b>으로 표시합니다'+(reason?' — '+esc(reason):'')+'. 지도 표시는 좌표변환 성공 시 나타납니다.</span>';
+  }
+}
+function renderResult(){
+  var html="";
+  // 좌표 기반 실제 길찾기는 road 모드(모든 지점 좌표 확보)에서만 가능.
+  // temp 모드는 좌표가 없어, 텍스트만으로 실제 길찾기를 지원하지 않는 네이버는
+  // '길찾기'라는 이름과 다르게 동작하지 않도록 버튼을 비활성화한다(카카오는 텍스트 기반 길찾기 지원).
+  var hasCoords = (calcMode==='road');
+  for(var i=0;i<seq.length;i++){
+    var isHQ=(i===0||i===seq.length-1);
+    var badge=i===0?"출발":(i===seq.length-1?"복귀":String(i));
+    var disp=isHQ?(seq[i].name+" · "+seq[i].addr):seq[i].addr;
+    var seg = i>0 ? '<div class="segrow"><span class="seglbl">길찾기(이전→여기)</span>'+
+        '<button class="mbtn n" data-act="seg-n" data-i="'+i+'"'+(hasCoords?'':' disabled title="좌표 미확보로 이용 불가 — 카카오 길찾기를 이용하세요"')+'><span class="dot"></span>네이버</button>'+
+        '<button class="mbtn k" data-act="seg-k" data-i="'+i+'"><span class="dot"></span>카카오</button></div>' : '';
+    html += '<div class="stop'+(isHQ?' hq':'')+'">'+
+      '<div class="stop-head"><span class="stop-badge">'+esc(badge)+'</span><span class="stop-addr">'+esc(disp)+'</span></div>'+
+      seg+'</div>';
+  }
+  $("resultBody").innerHTML=html;
+}
+$("resultBody").addEventListener("click",function(e){
+  var b=e.target.closest("button[data-act]"); if(!b||b.disabled) return;
+  var i=+b.dataset.i, act=b.dataset.act, cur=seq[i], prev=seq[i-1];
+  if(!cur||!prev) return;
+  if(act==="seg-n") openUrl(segNaverUrl(prev,cur));
+  else if(act==="seg-k") openUrl(segKakaoUrl(prev,cur));
+});
+
+/* ===== 지도(Leaflet + OSM 타일 + OSRM 경로) ===== */
+var lmap=null, lLayers=[];
+function renderMap(){
+  var el=$("map");
+  if(typeof L==='undefined'){ el.classList.add("hide"); return; }
+  el.classList.remove("hide");
+  if(!lmap){
+    lmap=L.map('map',{scrollWheelZoom:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(lmap);
+  }
+  lLayers.forEach(function(l){ lmap.removeLayer(l); }); lLayers=[];
+  var bounds=[];
+  if(routeGeom&&routeGeom.length){
+    var ll=routeGeom.map(function(c){ return [c[1],c[0]]; });
+    lLayers.push(L.polyline(ll,{color:'#0b6e4f',weight:5,opacity:.85}).addTo(lmap));
+    bounds=ll.slice();
+  }
+  function mk(p,label,cls){
+    if(!p||!p.ll) return;
+    var ic=L.divIcon({html:'<span class="mk '+cls+'">'+esc(label)+'</span>',iconSize:[28,28],iconAnchor:[14,14]});
+    lLayers.push(L.marker([p.ll.lat,p.ll.lng],{icon:ic}).addTo(lmap));
+    bounds.push([p.ll.lat,p.ll.lng]);
+  }
+  mk(depStop,"출발","hq");
+  ordered.forEach(function(s,i){ mk(s,String(i+1),"st"); });
+  if(!sameRet) mk(retStop,"복귀","rt");
+  if(bounds.length){ try{ lmap.fitBounds(bounds,{padding:[28,28]}); }catch(e){} }
+  setTimeout(function(){ lmap.invalidateSize(); if(bounds.length){ try{ lmap.fitBounds(bounds,{padding:[28,28]}); }catch(e){} } },250);
+}
+
+/* ===== 카카오 키 저장 ===== */
+function setKeyStatus(msg,color){ var s=$("keyStatus"); if(!s) return; s.innerHTML=msg; s.style.color=color||"var(--muted)"; }
+(function(){
+  var saved=null; try{ saved=localStorage.getItem(KEY_LS); }catch(e){}
+  if(saved===null) saved=DEFAULT_KAKAO;
+  $("kakaoKey").value=saved;
+  if(saved) setKeyStatus("카카오 키 적용됨. ‘🔌 연결 테스트’로 확인하세요.","#1a7f4b");
+  else setKeyStatus("키 없음 → OpenStreetMap으로 동작 (키를 넣으면 한국 주소 정확도↑).");
+  function save(){
+    try{ localStorage.setItem(KEY_LS, kakaoKey()); }catch(e){}
+    kakaoSDK=null;
+    setKeyStatus(kakaoKey()?"✓ 저장됨.":"키 없음 → OpenStreetMap으로 동작.","#1a7f4b");
+  }
+  $("kakaoKey").addEventListener("input",save);
+  $("kakaoKey").addEventListener("change",save);
+})();
+function testKey(){
+  setKeyStatus("⏳ "+geoProvider()+" 연결 테스트 중...","var(--muted)");
+  geocodeStr('경기도 파주시 시청로 50').then(function(c){
+    // geocodeStr는 카카오 실패 시 OpenStreetMap으로 조용히 폴백하므로, 겉보기 제공자(geoProvider)가
+    // 아니라 실제로 응답을 만들어낸 제공자(c.provider)를 표시해야 오진단을 막을 수 있다.
+    var actual = c.provider || geoProvider();
+    if(kakaoKey() && actual!=='카카오'){
+      setKeyStatus("⚠️ 카카오 연결 실패 — OpenStreetMap으로 대체되어 동작 중입니다. 카카오 키·도메인 등록·서비스 활성화를 확인하세요.","var(--warn)");
+    } else {
+      setKeyStatus("✅ 정상! ("+actual+") 좌표 "+c.lat.toFixed(5)+", "+c.lng.toFixed(5),"#1a7f4b");
+    }
+  }).catch(function(e){
+    if(e&&e.type==='SDK') setKeyStatus("❌ 카카오 SDK 로드 실패 — 키/도메인/서비스 활성화 확인. (키를 비우면 OpenStreetMap으로 동작)","var(--warn)");
+    else if(e&&e.type==='NOT_FOUND') setKeyStatus("⚠️ 연결은 되나 테스트 주소를 못 찾음("+geoProvider()+").","var(--warn)");
+    else setKeyStatus("❌ 호출 실패(네트워크).","var(--warn)");
+  });
+}
+
+/* ===== 바인딩 & 초기화 ===== */
+$("calcBtn").addEventListener("click",calculate);
+$("testKeyBtn").addEventListener("click",testKey);
+$("saveDepBtn").addEventListener("click",saveDep);
+$("delSavedBtn").addEventListener("click",delSavedDep);
+$("savedSel").addEventListener("change",function(){
+  var v=this.value; if(v==="") return;
+  var arr=loadSavedDeps(); if(arr[+v]!=null){ $("depAddr").value=arr[+v]; markStale(); }
+});
+$("depAddr").addEventListener("input",markStale);
+$("retAddr").addEventListener("input",markStale);
+$("retDiff").addEventListener("change",function(){
+  $("retRow").classList.toggle("hide", !this.checked);
+  if(this.checked) $("retAddr").focus();
+  markStale();
+});
+$("prefixTxt").addEventListener("change",function(){
+  try{ localStorage.setItem(PREFIX_LS, prefixVal()); }catch(e){}
+});
+(function(){
+  try{
+    var p=localStorage.getItem(PREFIX_LS); if(p!==null) $("prefixTxt").value=p;
+    var d=localStorage.getItem(LASTDEP_LS); if(d) $("depAddr").value=d;
+  }catch(e){}
+  renderSavedDeps();
+  renderSites();
+})();
+</script>
+</body>
+</html>
