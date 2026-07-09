@@ -428,10 +428,19 @@ function searchCandidates(q, ref){
       var k=(c.addr||'')+'|'+(c.place||'');
       if(seen[k]) return; seen[k]=1; out.push(c);
     });
-    if(ref){   // 기준점(출발지 등)에서 가까운 순 정렬 — 동명 도로의 타지역 후보가 아래로 밀림
-      out.forEach(function(c){ c.d=distKm(ref,c); });
-      out.sort(function(a,b){ return a.d-b.d; });
+    if(ref) out.forEach(function(c){ c.d=distKm(ref,c); });
+    // 2단계 정렬: ①질의와의 일치 정도(장소명 완전일치 > 시작일치·주소포함 > 나머지)
+    //            ②같은 등급 안에서는 기준점에서 가까운 순
+    // → "우장산역"처럼 특정한 이름은 거리가 멀어도 항상 맨 위에 온다.
+    var qn=(q||'').replace(/\s+/g,'');
+    function tier(c){
+      var name=(c.place||'').replace(/\s+/g,''), addr=(c.addr||'').replace(/\s+/g,'');
+      if(qn && name===qn) return 0;
+      if(qn && ((name&&name.indexOf(qn)===0) || (addr&&addr.indexOf(qn)!==-1))) return 1;
+      return 2;
     }
+    out.forEach(function(c){ c.t=tier(c); });
+    out.sort(function(a,b){ if(a.t!==b.t) return a.t-b.t; return (a.d||0)-(b.d||0); });
     return out.slice(0,8);
   }).catch(function(){ return []; });
 }
@@ -442,7 +451,7 @@ function showSuggest(box, q, opts){
   box.appendChild(el);
   searchCandidates(q, opts.ref||null).then(function(list){
     if(!document.body.contains(el)) return;
-    var h = list.length ? '<div class="hd">검색 결과 — '+(opts.ref?'가까운 순으로 정렬했습니다':'원하는 곳을 선택하세요')+'</div>'
+    var h = list.length ? '<div class="hd">검색 결과 — '+(opts.ref?'일치하는 곳 우선 · 가까운 순':'원하는 곳을 선택하세요')+'</div>'
                         : '<div class="hd">검색 결과가 없습니다 — 주소를 더 자세히 쓰거나 그대로 추가하세요</div>';
     list.forEach(function(c,i){
       h+='<div class="it" data-i="'+i+'">'+
