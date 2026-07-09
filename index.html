@@ -41,18 +41,28 @@ input[type=text],input[type=number],select,textarea{
   width:100%;border:1.5px solid var(--line);border-radius:11px;padding:10px 13px;font-size:.92rem;font-family:inherit;color:var(--ink);background:#fafbff}
 select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236a7085' stroke-width='1.6' fill='none'/></svg>");background-repeat:no-repeat;background-position:right 12px center}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(79,70,229,.15);background:#fff}
-.startbox{display:flex;align-items:center;gap:9px;background:var(--brandsoft);border:none;border-left:4px solid var(--brand);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.startbox{position:relative;display:flex;align-items:center;gap:9px;background:var(--brandsoft);border:none;border-left:4px solid var(--brand);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .startbox .pin{min-width:38px;height:26px;padding:0 8px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0}
 .startbox input{flex:1;min-width:0;background-color:#fff}
 .startbox.ret{background:#f5f1ff;border-left-color:#8b5cf6}
 .startbox.ret .pin{background:#8b5cf6}
+.startbox.dest{background:#fff7ed;border-left-color:#f97316}
+.startbox.dest .pin{background:#f97316}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 5px);background:#fff;border:1.5px solid var(--line);border-radius:13px;box-shadow:var(--shadow);z-index:60;max-height:300px;overflow-y:auto}
+.sugg .hd{padding:9px 14px;font-size:.72rem;color:var(--muted);background:#f8f9fd;border-bottom:1px solid var(--line)}
+.sugg .it{padding:10px 14px;font-size:.88rem;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid #f3f4fa}
+.sugg .it:last-child{border-bottom:none}
+.sugg .it:hover{background:var(--brandsoft)}
+.sugg .it .p{font-weight:700}
+.sugg .it .a{color:var(--muted);font-size:.78rem}
+.sugg .it.raw{color:var(--brand2);font-weight:600}
 .savebtn{flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:9px;height:38px;padding:0 12px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--brand2);font-family:inherit;white-space:nowrap}
 .savebtn:hover{background:var(--brandsoft)}
 .chk-row{display:flex;align-items:center;gap:7px;font-size:.85rem;cursor:pointer;margin:10px 0 6px;user-select:none}
 .chk-row input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer}
 .site-list{margin:12px 0 6px;display:flex;flex-direction:column;gap:8px}
-.site-item{display:flex;gap:9px;align-items:center;background:#f8f9fd;border:none;border-left:3px solid #c9cff5;border-radius:11px;padding:10px 11px}
-.site-item .num{width:26px;height:26px;border-radius:8px;background:var(--brandsoft);color:var(--brand2);display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:800;flex-shrink:0}
+.site-item{display:flex;gap:9px;align-items:center;background:#fffaf3;border:none;border-left:3px solid #fdba74;border-radius:11px;padding:10px 11px}
+.site-item .num{width:26px;height:26px;border-radius:8px;background:#ffedd5;color:#c2410c;display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:800;flex-shrink:0}
 .site-item .body{flex:1;min-width:0}
 .site-item .nm{font-weight:600;font-size:.9rem;word-break:break-all}
 .mini-btns{display:flex;gap:4px;flex-shrink:0}
@@ -84,7 +94,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .stop{border:1.5px solid var(--line);border-radius:14px;padding:12px 13px;background:#fff}
 .stop.hq{background:var(--brandsoft);border-color:#d3dbfa}
 .stop-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
-.stop-badge{flex:0 0 auto;min-width:30px;height:30px;padding:0 8px;border-radius:10px;background:var(--brand);color:#fff;font-weight:800;font-size:.95rem;display:flex;align-items:center;justify-content:center}
+.stop-badge{flex:0 0 auto;min-width:30px;height:30px;padding:0 8px;border-radius:10px;background:#f97316;color:#fff;font-weight:800;font-size:.95rem;display:flex;align-items:center;justify-content:center}
 .stop.hq .stop-badge{background:#1d2143;font-size:.74rem}
 .stop-addr{font-size:.95rem;font-weight:600;line-height:1.4;word-break:break-all;padding-top:4px}
 .mbtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 6px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--ink);font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:5px}
@@ -120,10 +130,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
     <h2>📍 출장지 입력</h2>
     <div class="sub">출발지 주소를 입력하고(★ 저장 가능), 출장지 주소를 추가하세요.</div>
 
-    <label class="fl">출발 지점 — 주소 자유 입력</label>
-    <div class="startbox">
+    <label class="fl">출발 지점 — 주소 입력 후 엔터를 누르면 검색 목록이 뜹니다</label>
+    <div class="startbox" id="depBox">
       <span class="pin">출발</span>
-      <input type="text" id="depAddr" placeholder="출발지 주소 입력" maxlength="120">
+      <input type="text" id="depAddr" placeholder="출발지 주소 입력 후 엔터" maxlength="120">
       <button class="savebtn" id="saveDepBtn" type="button" title="현재 출발지를 즐겨찾기에 저장">★ 저장</button>
     </div>
     <div class="add-row">
@@ -139,11 +149,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 
     <div class="site-list" id="siteList"></div>
 
-    <label class="fl" style="margin-top:12px">출장지 추가</label>
-    <div class="add-row">
-      <input type="text" id="inAddr" style="flex:1;min-width:0" placeholder="출장지 주소 입력" maxlength="120">
+    <label class="fl" style="margin-top:12px">출장지 추가 — 주소 입력 후 엔터를 누르면 검색 목록이 뜹니다</label>
+    <div class="startbox dest" id="siteBox">
+      <span class="pin">출장</span>
+      <input type="text" id="inAddr" placeholder="출장지 주소 입력 후 엔터" maxlength="120">
     </div>
-    <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 추가</button>
+    <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 검색해서 추가</button>
 
     <div class="add-row" style="justify-content:space-between;margin-top:10px">
       <button class="btn ghost" id="resetBtn" style="padding:7px 13px;font-size:.82rem">↻ 초기화</button>
@@ -346,8 +357,111 @@ function osrmTrip(coords, roundtrip){
   });
 }
 
+/* ===== 주소 검색 제안(드롭다운) =====
+   같은 도로명이 여러 지역에 있을 때(예: OO로30번길) 지오코더가 엉뚱한 지역을
+   고르는 문제를 막기 위해, 후보 목록을 보여주고 사용자가 직접 선택하게 한다.
+   선택한 항목의 좌표를 그대로 저장하므로 계산 시 재변환(오인식) 없이 정확하다. */
+var depPicked = null;   // 출발지에서 선택한 {addr, ll}
+function hideSuggs(){ var s=document.querySelectorAll('.sugg'); for(var i=0;i<s.length;i++) s[i].remove(); }
+document.addEventListener('click', function(e){ if(!e.target.closest('.startbox')) hideSuggs(); });
+function kakaoCandidates(q){
+  return loadKakao().then(function(){
+    return new Promise(function(resolve){
+      var out=[], geo=new kakao.maps.services.Geocoder();
+      geo.addressSearch(q,function(res,status){
+        if(status===kakao.maps.services.Status.OK&&res) res.forEach(function(r){
+          out.push({addr:(r.road_address&&r.road_address.address_name)||r.address_name, sub:r.address_name,
+                    lat:parseFloat(r.y), lng:parseFloat(r.x), src:'카카오'});
+        });
+        var ps=new kakao.maps.services.Places();
+        ps.keywordSearch(q,function(r2,s2){
+          if(s2===kakao.maps.services.Status.OK&&r2) r2.forEach(function(p){
+            out.push({addr:p.road_address_name||p.address_name, place:p.place_name,
+                      lat:parseFloat(p.y), lng:parseFloat(p.x), src:'카카오'});
+          });
+          resolve(out);
+        });
+      });
+    });
+  });
+}
+function nominatimCandidates(q){
+  return nominatimGate().then(function(){
+    var url=NOMINATIM+'?format=json&limit=6&countrycodes=kr&accept-language=ko&q='+encodeURIComponent(q);
+    return fetch(url,{headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(arr){
+      return (arr||[]).map(function(a){ return {addr:a.display_name, lat:parseFloat(a.lat), lng:parseFloat(a.lon), src:'OpenStreetMap'}; });
+    });
+  });
+}
+function searchCandidates(q){
+  var p = kakaoKey() ? kakaoCandidates(q).catch(function(){ return nominatimCandidates(q); }) : nominatimCandidates(q);
+  return p.then(function(list){
+    var seen={}, out=[];
+    list.forEach(function(c){
+      if(!c.addr&&!c.place) return;
+      if(isNaN(c.lat)||isNaN(c.lng)) return;
+      var k=(c.addr||'')+'|'+(c.place||'');
+      if(seen[k]) return; seen[k]=1; out.push(c);
+    });
+    return out.slice(0,8);
+  }).catch(function(){ return []; });
+}
+function showSuggest(box, q, opts){
+  hideSuggs();
+  var el=document.createElement('div'); el.className='sugg';
+  el.innerHTML='<div class="hd">⏳ "'+esc(q)+'" 검색 중...</div>';
+  box.appendChild(el);
+  searchCandidates(q).then(function(list){
+    if(!document.body.contains(el)) return;
+    var h = list.length ? '<div class="hd">검색 결과 — 원하는 곳을 선택하세요</div>'
+                        : '<div class="hd">검색 결과가 없습니다 — 주소를 더 자세히 쓰거나 그대로 추가하세요</div>';
+    list.forEach(function(c,i){
+      h+='<div class="it" data-i="'+i+'">'+
+         (c.place?'<span class="p">'+esc(c.place)+'</span>':'')+
+         '<span class="'+(c.place?'a':'p')+'">'+esc(c.addr||'')+'</span>'+
+         (c.sub&&c.sub!==c.addr?'<span class="a">지번: '+esc(c.sub)+'</span>':'')+
+         '</div>';
+    });
+    h+='<div class="it raw" data-raw="1">➕ 입력한 그대로 사용 — "'+esc(q)+'"</div>';
+    el.innerHTML=h;
+    el.addEventListener('click',function(e){
+      var it=e.target.closest('.it'); if(!it) return;
+      e.stopPropagation();
+      if(it.dataset.raw){ opts.onPick({addr:q, place:null, ll:null}); hideSuggs(); return; }
+      var c=list[+it.dataset.i];
+      opts.onPick({addr:c.addr||c.place, place:c.place||null,
+                   ll:{lat:c.lat, lng:c.lng, provider:c.src}});
+      hideSuggs();
+    });
+  });
+}
+function openDepSuggest(){
+  var q=normPrefix($("depAddr").value);
+  if(!q){ toast("출발지 주소를 입력하세요."); $("depAddr").focus(); return; }
+  showSuggest($("depBox"), q, {onPick:function(p){
+    $("depAddr").value=p.addr;
+    depPicked = p.ll ? {addr:p.addr, ll:p.ll} : null;
+    markStale();
+    if(p.ll) toast("출발지 위치를 선택했습니다.");
+  }});
+}
+function openSiteSuggest(){
+  if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
+  var q=normPrefix($("inAddr").value);
+  if(!q){ toast("출장지 주소를 입력하세요."); $("inAddr").focus(); return; }
+  showSuggest($("siteBox"), q, {onPick:function(p){
+    sites.push({addr:p.addr, name:p.place||null, ll:p.ll||null});
+    $("inAddr").value=""; $("inAddr").focus();
+    renderSites(); markStale();
+  }});
+}
+
 /* ===== 출발지·복귀지 ===== */
-function getDep(){ var a=normPrefix($("depAddr").value); return a?{name:"출발지", addr:a, ll:null}:null; }
+function getDep(){
+  var a=normPrefix($("depAddr").value); if(!a) return null;
+  var ll = (depPicked && depPicked.addr===a) ? depPicked.ll : null;   // 선택한 좌표는 그대로 사용
+  return {name:"출발지", addr:a, ll:ll};
+}
 function getRet(){
   if(!$("retDiff").checked) return null;               // 복귀지 = 출발지
   var a=normPrefix($("retAddr").value);
@@ -384,7 +498,7 @@ function renderSites(){
   if(!sites.length) box.innerHTML='<div class="empty">아직 추가된 출장지가 없습니다. 아래에서 주소를 입력해 추가하세요.</div>';
   else box.innerHTML = sites.map(function(s,i){
     return '<div class="site-item"><span class="num">'+(i+1)+'</span>'+
-      '<div class="body"><div class="nm">'+esc(s.addr)+'</div></div>'+
+      '<div class="body"><div class="nm">'+(s.name?esc(s.name)+' · ':'')+esc(s.addr)+'</div></div>'+
       '<div class="mini-btns"><button class="icon-btn" data-act="del" data-i="'+i+'" title="삭제">✕</button></div></div>';
   }).join("");
   var c=$("countLbl"); c.textContent="현재 "+sites.length+" / "+MAX+"곳"; c.className="count"+(sites.length>=MAX?" full":"");
@@ -404,15 +518,6 @@ function clearStale(){
   $("resultBody").classList.remove("stale-dim");
   $("map").classList.remove("stale-dim");
 }
-function addSite(){
-  if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
-  var addr=normPrefix($("inAddr").value);
-  if(!addr){ toast("주소를 입력하세요."); return; }
-  sites.push({addr:addr, ll:null});
-  $("inAddr").value=""; $("inAddr").focus();
-  renderSites();
-  markStale();
-}
 function resetSites(){
   sites=[]; ordered=[]; seq=[]; routeGeom=null;
   renderSites();
@@ -422,9 +527,10 @@ function resetSites(){
   toast("출장지 목록을 초기화했습니다.");
 }
 $("siteList").addEventListener("click",function(e){ var b=e.target.closest("button"); if(b&&b.dataset.act==="del"){ sites.splice(+b.dataset.i,1); renderSites(); markStale(); } });
-$("addBtn").addEventListener("click",addSite);
+$("addBtn").addEventListener("click",openSiteSuggest);
 $("resetBtn").addEventListener("click",resetSites);
-$("inAddr").addEventListener("keydown",function(e){ if(e.key==="Enter") addSite(); });
+$("inAddr").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); openSiteSuggest(); } });
+$("depAddr").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); openDepSuggest(); } });
 
 /* ===== 계산 ===== */
 function calculate(){
@@ -456,6 +562,7 @@ function calcRoad(){
   pts.forEach(function(pt,idx){
     chain=chain.then(function(){
       $("calcBtn").textContent="⏳ 좌표 변환 "+(idx+1)+"/"+pts.length+"...";
+      if(pt.ll){ coords[idx]=pt.ll; return; }   // 검색에서 선택했거나 이미 변환된 좌표는 재사용
       return geocodeOne(pt).then(function(c){ coords[idx]=c; pt.ll=c; }, function(){ if(idx>0) fails.push(pt.addr||pt.name); });
     });
   });
@@ -526,7 +633,7 @@ function renderResult(){
   for(var i=0;i<seq.length;i++){
     var isHQ=(i===0||i===seq.length-1);
     var badge=i===0?"출발":(i===seq.length-1?"복귀":String(i));
-    var disp=isHQ?(seq[i].name+" · "+seq[i].addr):seq[i].addr;
+    var disp=isHQ?(seq[i].name+" · "+seq[i].addr):((seq[i].name?seq[i].name+" · ":"")+seq[i].addr);
     var seg = i>0 ? '<div class="segrow"><span class="seglbl">길찾기(이전→여기)</span>'+
         '<button class="mbtn n" data-act="seg-n" data-i="'+i+'"'+(hasCoords?'':' disabled title="좌표 미확보로 이용 불가 — 카카오 길찾기를 이용하세요"')+'><span class="dot"></span>네이버</button>'+
         '<button class="mbtn k" data-act="seg-k" data-i="'+i+'"><span class="dot"></span>카카오</button></div>' : '';
