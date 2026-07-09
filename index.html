@@ -135,10 +135,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--paju);bo
 
     <div class="site-list" id="siteList"></div>
 
-    <label class="fl" style="margin-top:12px">출장지 추가 — 왼쪽 상자는 주소 앞에 자동으로 붙일 지역(수정·삭제 가능)</label>
+    <label class="fl" style="margin-top:12px">출장지 추가 — 왼쪽 상자에 지역명을 넣으면 주소 앞에 자동으로 붙습니다(선택)</label>
     <div class="add-row">
-      <input type="text" id="prefixTxt" class="prefix-in" value="경기도 파주시" maxlength="30" title="주소 앞에 자동으로 붙일 지역명 (비우면 붙이지 않음)">
-      <input type="text" id="inAddr" style="flex:1;min-width:0" placeholder="이후 주소 입력" maxlength="120">
+      <input type="text" id="prefixTxt" class="prefix-in" value="" placeholder="지역(선택)" maxlength="30" title="주소 앞에 자동으로 붙일 지역명 (비우면 붙이지 않음)">
+      <input type="text" id="inAddr" style="flex:1;min-width:0" placeholder="출장지 주소 입력" maxlength="120">
     </div>
     <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 추가</button>
 
