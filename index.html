@@ -153,8 +153,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
       <input type="text" id="retAddr" placeholder="복귀지 주소 입력 (비우면 출발지로 복귀)" maxlength="120">
     </div>
 
-    <div class="site-list" id="siteList"></div>
-
     <label class="fl" style="margin-top:12px">출장지 추가 — 주소 입력 후 엔터를 누르면 검색 목록이 뜹니다</label>
     <div class="startbox dest" id="siteBox">
       <span class="pin">출장</span>
@@ -162,6 +160,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
     </div>
     <div class="fav-list hide" id="favSites"></div>
     <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 검색해서 추가</button>
+
+    <div class="site-list" id="siteList"></div>
 
     <div class="add-row" style="justify-content:space-between;margin-top:10px">
       <button class="btn ghost" id="resetBtn" style="padding:7px 13px;font-size:.82rem">↻ 초기화</button>
@@ -570,7 +570,7 @@ $("favSites").addEventListener("click",function(e){
 /* ===== 입력 렌더 ===== */
 function renderSites(){
   var box=$("siteList");
-  if(!sites.length) box.innerHTML='<div class="empty">아직 추가된 출장지가 없습니다. 아래에서 주소를 입력해 추가하세요.</div>';
+  if(!sites.length) box.innerHTML='<div class="empty">아직 추가된 출장지가 없습니다. 위 검색칸에서 주소를 입력해 추가하세요.</div>';
   else box.innerHTML = sites.map(function(s,i){
     return '<div class="site-item"><span class="num">'+(i+1)+'</span>'+
       '<div class="body"><div class="nm">'+(s.name?esc(s.name)+' · ':'')+esc(s.addr)+'</div></div>'+
