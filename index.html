@@ -56,6 +56,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .sugg .it .p{font-weight:700}
 .sugg .it .a{color:var(--muted);font-size:.78rem}
 .sugg .it.raw{color:var(--brand2);font-weight:600}
+.fav-list{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
+.fav{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #fdba74;color:#9a3412;border-radius:999px;padding:5px 8px 5px 12px;font-size:.8rem;font-weight:600;cursor:pointer;user-select:none}
+.fav:hover{background:#fff7ed}
+.fav .x{width:18px;height:18px;border-radius:50%;background:#ffedd5;color:#c2410c;display:flex;align-items:center;justify-content:center;font-size:.68rem;flex-shrink:0}
+.fav .x:hover{background:#fecaca;color:#b91c1c}
+.icon-btn.star:hover{background:#fff7ed;border-color:#fdba74;color:#c2410c}
 .savebtn{flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:9px;height:38px;padding:0 12px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--brand2);font-family:inherit;white-space:nowrap}
 .savebtn:hover{background:var(--brandsoft)}
 .chk-row{display:flex;align-items:center;gap:7px;font-size:.85rem;cursor:pointer;margin:10px 0 6px;user-select:none}
@@ -104,6 +110,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .mbtn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .mbtn.n{border-color:#9fe3bf}.mbtn.n .dot{background:#03c75a}
 .mbtn.k{border-color:#ecdf7a;background:#fffdf2}.mbtn.k .dot{background:#fbe000}
+.mbtn.t{border-color:#f5b5b5}.mbtn.t .dot{background:#ef3e3e}
 .segrow{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
 .seglbl{font-size:.74rem;color:var(--muted);margin-right:2px}
 .segrow .mbtn{padding:7px 14px}
@@ -120,9 +127,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 <div class="wrap">
 
   <header class="app">
-    <h1>🧭 출장 길잡이</h1>
+    <h1>출장 길잡이</h1>
     <p>출장 동선 자동 생성</p>
-    <span class="badge">출발지 자유 검색·저장 · 복귀지 변경 가능 · 경유 출장지 최대 15곳</span>
   </header>
 
   <!-- ── 입력 ── -->
@@ -154,6 +160,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
       <span class="pin">출장</span>
       <input type="text" id="inAddr" placeholder="출장지 주소 입력 후 엔터" maxlength="120">
     </div>
+    <div class="fav-list hide" id="favSites"></div>
     <button class="btn ghost block" id="addBtn" style="margin-top:8px">＋ 출장지 검색해서 추가</button>
 
     <div class="add-row" style="justify-content:space-between;margin-top:10px">
@@ -226,6 +233,7 @@ var calcMode = 'temp';
 var DEFAULT_KAKAO = '40a12a900e52a3b7377f94bd66f65484';  // 도메인 제한 카카오 JS 키(carrotluv.github.io 전용)
 var KEY_LS = 'cg_kakao_key';
 var DEP_LS = 'cg_saved_deps';     // 저장된 출발지 목록(JSON 배열)
+var SITE_LS = 'cg_saved_sites';   // 저장된 출장지 목록([{addr,name,ll}] — 좌표까지 저장)
 var NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 var OSRM = 'https://router.project-osrm.org/trip/v1/driving/';
 var kakaoSDK = null;
@@ -492,6 +500,28 @@ function delSavedDep(){
   toast("저장 출발지를 삭제했습니다.");
 }
 
+/* ===== 출장지 즐겨찾기(localStorage, 좌표 포함) ===== */
+function loadSavedSites(){ try{ var a=JSON.parse(localStorage.getItem(SITE_LS)||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function storeSavedSites(arr){ try{ localStorage.setItem(SITE_LS, JSON.stringify(arr)); }catch(e){} }
+function renderFavSites(){
+  var arr=loadSavedSites(), box=$("favSites");
+  if(!arr.length){ box.innerHTML=""; box.classList.add("hide"); return; }
+  box.classList.remove("hide");
+  box.innerHTML = arr.map(function(s,i){
+    return '<span class="fav" data-i="'+i+'" title="누르면 출장지 목록에 추가">★ '+esc(s.name||s.addr)+
+           '<span class="x" data-del="'+i+'" title="저장 삭제">✕</span></span>';
+  }).join("");
+}
+$("favSites").addEventListener("click",function(e){
+  var del=e.target.closest("[data-del]");
+  if(del){ var a=loadSavedSites(); a.splice(+del.dataset.del,1); storeSavedSites(a); renderFavSites(); toast("저장 출장지를 삭제했습니다."); return; }
+  var chip=e.target.closest(".fav"); if(!chip) return;
+  if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
+  var s=loadSavedSites()[+chip.dataset.i]; if(!s) return;
+  sites.push({addr:s.addr, name:s.name||null, ll:s.ll||null});
+  renderSites(); markStale(); toast("출장지에 추가했습니다.");
+});
+
 /* ===== 입력 렌더 ===== */
 function renderSites(){
   var box=$("siteList");
@@ -499,7 +529,8 @@ function renderSites(){
   else box.innerHTML = sites.map(function(s,i){
     return '<div class="site-item"><span class="num">'+(i+1)+'</span>'+
       '<div class="body"><div class="nm">'+(s.name?esc(s.name)+' · ':'')+esc(s.addr)+'</div></div>'+
-      '<div class="mini-btns"><button class="icon-btn" data-act="del" data-i="'+i+'" title="삭제">✕</button></div></div>';
+      '<div class="mini-btns"><button class="icon-btn star" data-act="fav" data-i="'+i+'" title="즐겨찾기 저장">★</button>'+
+      '<button class="icon-btn" data-act="del" data-i="'+i+'" title="삭제">✕</button></div></div>';
   }).join("");
   var c=$("countLbl"); c.textContent="현재 "+sites.length+" / "+MAX+"곳"; c.className="count"+(sites.length>=MAX?" full":"");
 }
@@ -526,7 +557,18 @@ function resetSites(){
   $("map").classList.add("hide");
   toast("출장지 목록을 초기화했습니다.");
 }
-$("siteList").addEventListener("click",function(e){ var b=e.target.closest("button"); if(b&&b.dataset.act==="del"){ sites.splice(+b.dataset.i,1); renderSites(); markStale(); } });
+$("siteList").addEventListener("click",function(e){
+  var b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.act==="del"){ sites.splice(+b.dataset.i,1); renderSites(); markStale(); }
+  else if(b.dataset.act==="fav"){
+    var s=sites[+b.dataset.i]; if(!s) return;
+    var arr=loadSavedSites();
+    for(var i=0;i<arr.length;i++){ if(arr[i].addr===s.addr){ toast("이미 저장된 출장지입니다."); return; } }
+    arr.push({addr:s.addr, name:s.name||null, ll:s.ll||null});
+    storeSavedSites(arr); renderFavSites();
+    toast("출장지를 저장했습니다. ★ 아래 목록에서 눌러 재사용하세요.");
+  }
+});
 $("addBtn").addEventListener("click",openSiteSuggest);
 $("resetBtn").addEventListener("click",resetSites);
 $("inAddr").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); openSiteSuggest(); } });
@@ -636,7 +678,9 @@ function renderResult(){
     var disp=isHQ?(seq[i].name+" · "+seq[i].addr):((seq[i].name?seq[i].name+" · ":"")+seq[i].addr);
     var seg = i>0 ? '<div class="segrow"><span class="seglbl">길찾기(이전→여기)</span>'+
         '<button class="mbtn n" data-act="seg-n" data-i="'+i+'"'+(hasCoords?'':' disabled title="좌표 미확보로 이용 불가 — 카카오 길찾기를 이용하세요"')+'><span class="dot"></span>네이버</button>'+
-        '<button class="mbtn k" data-act="seg-k" data-i="'+i+'"><span class="dot"></span>카카오</button></div>' : '';
+        '<button class="mbtn k" data-act="seg-k" data-i="'+i+'"><span class="dot"></span>카카오</button>'+
+        (IS_MOBILE?'<button class="mbtn t" data-act="seg-t" data-i="'+i+'"'+(hasCoords?' title="티맵은 현재위치→여기로 안내합니다"':' disabled title="좌표 미확보로 이용 불가"')+'><span class="dot"></span>티맵</button>':'')+
+        '</div>' : '';
     html += '<div class="stop'+(isHQ?' hq':'')+'">'+
       '<div class="stop-head"><span class="stop-badge">'+esc(badge)+'</span><span class="stop-addr">'+esc(disp)+'</span></div>'+
       seg+'</div>';
@@ -649,6 +693,7 @@ $("resultBody").addEventListener("click",function(e){
   if(!cur||!prev) return;
   if(act==="seg-n") openUrl(segNaverUrl(prev,cur));
   else if(act==="seg-k") openUrl(segKakaoUrl(prev,cur));
+  else if(act==="seg-t"&&cur.ll) openUrl("tmap://route?goalname="+enc(linkName(cur))+"&goalx="+cur.ll.lng+"&goaly="+cur.ll.lat);
 });
 
 /* ===== 지도(Leaflet + OSM 타일 + OSRM 경로) ===== */
@@ -658,7 +703,7 @@ function renderMap(){
   if(typeof L==='undefined'){ el.classList.add("hide"); return; }
   el.classList.remove("hide");
   if(!lmap){
-    lmap=L.map('map',{scrollWheelZoom:false});
+    lmap=L.map('map',{scrollWheelZoom:true});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(lmap);
   }
   lLayers.forEach(function(l){ lmap.removeLayer(l); }); lLayers=[];
@@ -733,6 +778,7 @@ $("retDiff").addEventListener("change",function(){
 });
 (function(){
   renderSavedDeps();
+  renderFavSites();
   renderSites();
 })();
 </script>
