@@ -518,7 +518,8 @@ function pushHist(p){
   try{ localStorage.setItem(HIST_LS, JSON.stringify(a)); }catch(e){}
 }
 function histMatch(q){
-  q=(q||'').replace(/\s+/g,''); if(!q) return [];
+  q=(q||'').replace(/\s+/g,'');
+  if(!q) return loadHist().slice(0,6);   // 빈 칸에서 클릭/포커스 → 최근 기록 전체 표시
   var choOnly=/^[ㄱ-ㅎ]+$/.test(q);
   return loadHist().filter(function(h){
     var t=((h.name||'')+' '+h.addr).replace(/\s+/g,'');
@@ -899,22 +900,21 @@ $("savedSel").addEventListener("change",function(){
     markStale();
   }
 });
-$("depAddr").addEventListener("input",function(){
+function depHistPick(p){
+  $("depAddr").value=p.addr;
+  depPicked = p.ll ? {addr:p.addr, ll:p.ll} : null;
   markStale();
-  showHist($("depBox"), this.value, function(p){
-    $("depAddr").value=p.addr;
-    depPicked = p.ll ? {addr:p.addr, ll:p.ll} : null;
-    markStale();
-  });
-});
-$("inAddr").addEventListener("input",function(){
-  showHist($("siteBox"), this.value, function(p){
-    if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
-    sites.push({addr:p.addr, name:p.place||null, ll:p.ll||null});
-    $("inAddr").value=""; $("inAddr").focus();
-    renderSites(); markStale();
-  });
-});
+}
+function siteHistPick(p){
+  if(sites.length>=MAX){ toast("출장지는 최대 "+MAX+"곳까지 입력할 수 있습니다."); return; }
+  sites.push({addr:p.addr, name:p.place||null, ll:p.ll||null});
+  $("inAddr").value="";
+  renderSites(); markStale();
+}
+$("depAddr").addEventListener("input",function(){ markStale(); showHist($("depBox"), this.value, depHistPick); });
+$("depAddr").addEventListener("focus",function(){ showHist($("depBox"), this.value, depHistPick); });   // 클릭/탭만 해도 최근 기록 표시
+$("inAddr").addEventListener("input",function(){ showHist($("siteBox"), this.value, siteHistPick); });
+$("inAddr").addEventListener("focus",function(){ showHist($("siteBox"), this.value, siteHistPick); });
 $("retAddr").addEventListener("input",markStale);
 $("retDiff").addEventListener("change",function(){
   $("retRow").classList.toggle("hide", !this.checked);
