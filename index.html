@@ -535,7 +535,7 @@ function showHist(box, q, onPick){
   var list=histMatch(q);
   if(!list.length) return;   // 일치 없으면 드롭다운 표시 안 함(기존 것도 숨김)
   var el=document.createElement('div'); el.className='sugg';
-  var h='<div class="hd">🕘 최근 검색 기록 — 누르면 바로 사용 · ✕로 기록 삭제</div>';
+  var h='<div class="hd">🕘 최근 검색 기록</div>';
   list.forEach(function(c,i){
     h+='<div class="it hist" data-i="'+i+'">'+
        '<span class="hx" data-del="'+i+'" title="이 기록 삭제">✕</span>'+
