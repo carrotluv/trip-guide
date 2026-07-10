@@ -191,10 +191,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
           기본은 OpenStreetMap(무료·무키)이며, <b>카카오 JavaScript 키</b>를 넣으면 한국 주소 정확도가 높아집니다(실패 시 자동 OSM 폴백).
         </p>
         <label class="fl">카카오 JavaScript 키 (선택)</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="password" id="kakaoKey" autocomplete="off" spellcheck="false" style="flex:1;min-width:0">
-          <button class="savebtn" id="keyEyeBtn" type="button" title="키 보기/숨기기">👁 보기</button>
-        </div>
+        <input type="password" id="kakaoKey" autocomplete="off" spellcheck="false">
         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
           <button class="btn ghost" id="testKeyBtn" type="button" style="padding:8px 14px;font-size:.82rem">🔌 지오코딩 연결 테스트</button>
           <span id="keyStatus" style="font-size:.8rem;color:var(--muted)"></span>
@@ -902,11 +899,6 @@ function testKey(){
 /* ===== 바인딩 & 초기화 ===== */
 $("calcBtn").addEventListener("click",calculate);
 $("testKeyBtn").addEventListener("click",testKey);
-$("keyEyeBtn").addEventListener("click",function(){
-  var k=$("kakaoKey"), show=(k.type==="password");
-  k.type = show ? "text" : "password";
-  this.textContent = show ? "🙈 숨김" : "👁 보기";
-});
 $("settingsBtn").addEventListener("click",function(){
   var p=$("setPanel"), opening=p.classList.contains("hide");
   p.classList.toggle("hide");
