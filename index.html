@@ -61,6 +61,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .sugg .it .p{font-weight:700}
 .sugg .it .a{color:var(--muted);font-size:.78rem}
 .sugg .it.raw{color:var(--brand2);font-weight:600}
+.sugg .it.hist{flex-direction:row;align-items:center;gap:10px}
+.sugg .hbody{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sugg .hx{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:#f1f2f8;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:.7rem;cursor:pointer}
+.sugg .hx:hover{background:#fecaca;color:#b91c1c}
 .fav-list{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
 .fav{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #fdba74;color:#9a3412;border-radius:999px;padding:5px 8px 5px 12px;font-size:.8rem;font-weight:600;cursor:pointer;user-select:none}
 .fav:hover{background:#fff7ed}
@@ -531,14 +535,25 @@ function showHist(box, q, onPick){
   var list=histMatch(q);
   if(!list.length) return;   // 일치 없으면 드롭다운 표시 안 함(기존 것도 숨김)
   var el=document.createElement('div'); el.className='sugg';
-  var h='<div class="hd">🕘 최근 검색 기록 — 누르면 바로 사용</div>';
+  var h='<div class="hd">🕘 최근 검색 기록 — 누르면 바로 사용 · ✕로 기록 삭제</div>';
   list.forEach(function(c,i){
-    h+='<div class="it" data-i="'+i+'">'+
+    h+='<div class="it hist" data-i="'+i+'">'+
+       '<span class="hx" data-del="'+i+'" title="이 기록 삭제">✕</span>'+
+       '<span class="hbody">'+
        (c.name?'<span class="p">'+esc(c.name)+'</span>':'')+
-       '<span class="'+(c.name?'a':'p')+'">'+esc(c.addr)+'</span></div>';
+       '<span class="'+(c.name?'a':'p')+'">'+esc(c.addr)+'</span></span></div>';
   });
   el.innerHTML=h;
   el.addEventListener('click',function(e){
+    var del=e.target.closest('[data-del]');
+    if(del){   // ✕: 해당 기록만 삭제하고 목록은 열린 채 갱신
+      e.stopPropagation();
+      var dc=list[+del.dataset.del];
+      var arr=loadHist().filter(function(hh){ return hh.addr!==dc.addr; });
+      try{ localStorage.setItem(HIST_LS, JSON.stringify(arr)); }catch(err){}
+      showHist(box, q, onPick);
+      return;
+    }
     var it=e.target.closest('.it'); if(!it) return;
     e.stopPropagation();
     var c=list[+it.dataset.i];
