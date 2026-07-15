@@ -93,7 +93,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
 .count{font-size:.78rem;color:var(--muted)}
 .count.full{color:var(--warn);font-weight:600}
 .notice{background:var(--warnbg);border:1.5px solid #fde68a;color:var(--warn);border-radius:12px;padding:11px 13px;font-size:.8rem;margin-bottom:12px;display:flex;gap:8px}
-.notice .i{flex-shrink:0}
+.notice.nowrap span{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .notice.info{background:var(--brandsoft);border-color:#c7d2fe;color:#3730a3}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
 .summary .box{background:linear-gradient(180deg,#fff,#f6f7ff);border:1.5px solid var(--line);border-top:3px solid var(--brand);border-radius:12px;padding:12px 11px;text-align:center}
@@ -142,14 +142,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
   <header class="app">
     <h1>출장 길잡이</h1>
     <div style="display:flex;gap:8px;flex:0 0 auto">
-      <button class="hreset" id="settingsBtn" type="button" title="지오코딩 설정 열기/닫기">⚙️ 설정</button>
+      <button class="hreset" id="settingsBtn" type="button" title="지오코딩 설정 열기/닫기">설정</button>
       <button class="hreset" id="resetBtn" type="button">↻ 초기화</button>
     </div>
   </header>
 
   <!-- ── 입력 ── -->
   <section class="card">
-    <h2>📍 출장지 입력</h2>
+    <h2>출장지 입력</h2>
     <div class="sub">출발지 주소를 입력하고(★ 저장 가능), 출장지 주소를 추가하세요.</div>
 
     <label class="fl">출발 지점 — 주소 입력 후 엔터를 누르면 검색 목록이 뜹니다</label>
@@ -184,7 +184,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
     </div>
 
     <div class="settings hide" id="setPanel" style="margin-top:14px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px">
-      <div style="padding:12px 0 4px;font-size:.88rem;font-weight:700;color:var(--brand2)">⚙️ 지오코딩 설정</div>
+      <div style="padding:12px 0 4px;font-size:.88rem;font-weight:700;color:var(--brand2)">지오코딩 설정</div>
       <div style="padding:0 0 14px">
         <p class="foot" style="text-align:left;margin:0 0 10px;line-height:1.6">
           주소를 좌표로 변환한 뒤 <b>도로 기준 최적 방문순서·실거리·실시간</b>(OSRM)으로 계산합니다.
@@ -193,7 +193,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
         <label class="fl">카카오 JavaScript 키 (선택)</label>
         <input type="password" id="kakaoKey" autocomplete="off" spellcheck="false">
         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
-          <button class="btn ghost" id="testKeyBtn" type="button" style="padding:8px 14px;font-size:.82rem">🔌 지오코딩 연결 테스트</button>
+          <button class="btn ghost" id="testKeyBtn" type="button" style="padding:8px 14px;font-size:.82rem">지오코딩 연결 테스트</button>
           <span id="keyStatus" style="font-size:.8rem;color:var(--muted)"></span>
         </div>
         <label class="fl" style="margin-top:12px">임시계산용(좌표변환 실패 시) — 구간 이동(분) / 거리(km)</label>
@@ -204,14 +204,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);b
       </div>
     </div>
 
-    <button class="btn primary" id="calcBtn" style="margin-top:14px">🧮 출장 순서 계산</button>
+    <button class="btn primary" id="calcBtn" style="margin-top:14px">출장 순서 계산</button>
   </section>
 
   <!-- ── 결과 ── -->
   <section class="card hide" id="resultCard">
-    <h2>🗂️ 출장 순서 결과</h2>
-    <div class="notice" id="staleNotice" style="display:none"><span class="i">⚠️</span><span>출발지·복귀지 또는 출장지 목록이 변경되었습니다. 아래 결과는 <b>변경 전 계산</b>입니다 — 다시 계산해 주세요.</span></div>
-    <div class="notice" id="modeNotice"><span class="i">ℹ️</span><span>계산 방식이 여기에 표시됩니다.</span></div>
+    <h2>출장 순서 결과</h2>
+    <div class="notice" id="staleNotice" style="display:none"><span>출발지·복귀지 또는 출장지 목록이 변경되었습니다. 아래 결과는 <b>변경 전 계산</b>입니다 — 다시 계산해 주세요.</span></div>
+    <div class="notice" id="modeNotice"><span>계산 방식이 여기에 표시됩니다.</span></div>
 
     <div class="summary" id="resultStaleArea">
       <div class="box"><div class="v" id="sTotal">0</div><div class="l">총 출장지</div></div>
@@ -471,7 +471,7 @@ function searchCandidates(q, ref){
 function showSuggest(box, q, opts){
   hideSuggs();
   var el=document.createElement('div'); el.className='sugg';
-  el.innerHTML='<div class="hd">⏳ "'+esc(q)+'" 검색 중...</div>';
+  el.innerHTML='<div class="hd">"'+esc(q)+'" 검색 중...</div>';
   box.appendChild(el);
   searchCandidates(q, opts.ref||null).then(function(list){
     if(!document.body.contains(el)) return;
@@ -482,10 +482,10 @@ function showSuggest(box, q, opts){
          (c.place?'<span class="p">'+esc(c.place)+'</span>':'')+
          '<span class="'+(c.place?'a':'p')+'">'+esc(c.addr||'')+'</span>'+
          (c.sub&&c.sub!==c.addr?'<span class="a">지번: '+esc(c.sub)+'</span>':'')+
-         (c.d!=null?'<span class="a">📍 '+(opts.refLabel||'기준점')+'에서 약 '+fmtKm(c.d)+'</span>':'')+
+         (c.d!=null?'<span class="a">'+(opts.refLabel||'기준점')+'에서 약 '+fmtKm(c.d)+'</span>':'')+
          '</div>';
     });
-    h+='<div class="it raw" data-raw="1">➕ 입력한 그대로 사용 — "'+esc(q)+'"</div>';
+    h+='<div class="it raw" data-raw="1">＋ 입력한 그대로 사용 — "'+esc(q)+'"</div>';
     el.innerHTML=h;
     el.addEventListener('click',function(e){
       var it=e.target.closest('.it'); if(!it) return;
@@ -535,7 +535,7 @@ function showHist(box, q, onPick){
   var list=histMatch(q);
   if(!list.length) return;   // 일치 없으면 드롭다운 표시 안 함(기존 것도 숨김)
   var el=document.createElement('div'); el.className='sugg';
-  var h='<div class="hd">🕘 최근 검색 기록</div>';
+  var h='<div class="hd">최근 검색 기록</div>';
   list.forEach(function(c,i){
     h+='<div class="it hist" data-i="'+i+'">'+
        '<span class="hx" data-del="'+i+'" title="이 기록 삭제">✕</span>'+
@@ -715,7 +715,7 @@ function calculate(){
   if(!getDep()){ toast("출발지 주소를 입력하세요."); $("depAddr").focus(); return; }
   if(!sites.length){ toast("출장지를 1곳 이상 추가하세요."); return; }
   var btn=$("calcBtn"); var label=btn.textContent; btn.disabled=true;
-  btn.textContent="⏳ 좌표 변환·도로 경로 계산 중...";
+  btn.textContent="좌표 변환·도로 경로 계산 중...";
   calcRoad().catch(function(e){ calcTemp(geoErrMsg(e)); }).then(function(){ btn.disabled=false; btn.textContent=label; });
 }
 function geoErrMsg(e){
@@ -739,7 +739,7 @@ function calcRoad(){
   var chain=Promise.resolve();
   pts.forEach(function(pt,idx){
     chain=chain.then(function(){
-      $("calcBtn").textContent="⏳ 좌표 변환 "+(idx+1)+"/"+pts.length+"...";
+      $("calcBtn").textContent="좌표 변환 "+(idx+1)+"/"+pts.length+"...";
       if(pt.ll){ coords[idx]=pt.ll; return; }   // 검색에서 선택했거나 이미 변환된 좌표는 재사용
       return geocodeOne(pt).then(function(c){ coords[idx]=c; pt.ll=c; }, function(){ if(idx>0) fails.push(pt.addr||pt.name); });
     });
@@ -747,7 +747,7 @@ function calcRoad(){
   return chain.then(function(){
     if(coords[0]==null) throw {type:'NOT_FOUND', addr:depStop.addr};
     if(fails.length) throw {type:'NOT_FOUND', list:fails};
-    $("calcBtn").textContent="⏳ 도로 경로 계산 중...";
+    $("calcBtn").textContent="도로 경로 계산 중...";
     return osrmTrip(coords, sameRet).then(function(trip){
       var wps=trip.waypoints, tr=trip.trips[0], legs=tr.legs;
       // 중간 경유지(출장지)만 최적 순서로 정렬 — 별도 복귀지는 항상 맨 끝(destination=last) 고정
@@ -793,13 +793,13 @@ function renderAll(meta){
 }
 function setModeNotice(mode,reason){
   var box=$("modeNotice"); if(!box) return;
-  if(mode==='road'){ box.className="notice info";
+  if(mode==='road'){ box.className="notice info nowrap";   // nowrap: 안내문 한 줄 고정(줄바꿈 금지)
     var provLabel = lastGeoProvider || geoProvider();
     var provNote = (kakaoKey() && provLabel.indexOf('카카오')!==0) ? ' — 카카오 좌표변환 실패로 OpenStreetMap이 대신 사용됨' : '';
     var tripNote = sameRet ? '' : ' 복귀지가 달라 <b>출발 고정·복귀 고정 편도 최적화</b>로 계산했습니다.';
-    box.innerHTML='<span class="i">🛰️</span><span><b>도로 기반 최적 경로</b>로 계산했습니다 ('+esc(provLabel)+' 좌표변환 + OSRM 도로 경로'+provNote+').'+tripNote+' 자동차 도로 기준 추정치이며 실제 교통상황과 다를 수 있습니다.</span>';
+    box.innerHTML='<span><b>도로 기반 최적 경로</b>로 계산했습니다 ('+esc(provLabel)+' 좌표변환 + OSRM 도로 경로'+provNote+').'+tripNote+' 자동차 도로 기준 추정치이며 실제 교통상황과 다를 수 있습니다.</span>';
   } else { box.className="notice";
-    box.innerHTML='<span class="i">⚠️</span><span><b>임시 계산(입력 순서)</b>으로 표시합니다'+(reason?' — '+esc(reason):'')+'. 지도 표시는 좌표변환 성공 시 나타납니다.</span>';
+    box.innerHTML='<span><b>임시 계산(입력 순서)</b>으로 표시합니다'+(reason?' — '+esc(reason):'')+'. 지도 표시는 좌표변환 성공 시 나타납니다.</span>';
   }
 }
 function renderResult(){
@@ -868,7 +868,7 @@ function setKeyStatus(msg,color){ var s=$("keyStatus"); if(!s) return; s.innerHT
   var saved=null; try{ saved=localStorage.getItem(KEY_LS); }catch(e){}
   if(saved===null) saved=DEFAULT_KAKAO;
   $("kakaoKey").value=saved;
-  if(saved) setKeyStatus("카카오 키 적용됨. ‘🔌 연결 테스트’로 확인하세요.","#1a7f4b");
+  if(saved) setKeyStatus("카카오 키 적용됨. ‘연결 테스트’로 확인하세요.","#1a7f4b");
   else setKeyStatus("키 없음 → OpenStreetMap으로 동작 (키를 넣으면 한국 주소 정확도↑).");
   function save(){
     try{ localStorage.setItem(KEY_LS, kakaoKey()); }catch(e){}
@@ -879,20 +879,20 @@ function setKeyStatus(msg,color){ var s=$("keyStatus"); if(!s) return; s.innerHT
   $("kakaoKey").addEventListener("change",save);
 })();
 function testKey(){
-  setKeyStatus("⏳ "+geoProvider()+" 연결 테스트 중...","var(--muted)");
+  setKeyStatus(geoProvider()+" 연결 테스트 중...","var(--muted)");
   geocodeStr('경기도 파주시 시청로 50').then(function(c){
     // geocodeStr는 카카오 실패 시 OpenStreetMap으로 조용히 폴백하므로, 겉보기 제공자(geoProvider)가
     // 아니라 실제로 응답을 만들어낸 제공자(c.provider)를 표시해야 오진단을 막을 수 있다.
     var actual = c.provider || geoProvider();
     if(kakaoKey() && actual!=='카카오'){
-      setKeyStatus("⚠️ 카카오 연결 실패 — OpenStreetMap으로 대체되어 동작 중입니다. 카카오 키·도메인 등록·서비스 활성화를 확인하세요.","var(--warn)");
+      setKeyStatus("카카오 연결 실패 — OpenStreetMap으로 대체되어 동작 중입니다. 카카오 키·도메인 등록·서비스 활성화를 확인하세요.","var(--warn)");
     } else {
-      setKeyStatus("✅ 정상! ("+actual+") 좌표 "+c.lat.toFixed(5)+", "+c.lng.toFixed(5),"#1a7f4b");
+      setKeyStatus("정상! ("+actual+") 좌표 "+c.lat.toFixed(5)+", "+c.lng.toFixed(5),"#1a7f4b");
     }
   }).catch(function(e){
-    if(e&&e.type==='SDK') setKeyStatus("❌ 카카오 SDK 로드 실패 — 키/도메인/서비스 활성화 확인. (키를 비우면 OpenStreetMap으로 동작)","var(--warn)");
-    else if(e&&e.type==='NOT_FOUND') setKeyStatus("⚠️ 연결은 되나 테스트 주소를 못 찾음("+geoProvider()+").","var(--warn)");
-    else setKeyStatus("❌ 호출 실패(네트워크).","var(--warn)");
+    if(e&&e.type==='SDK') setKeyStatus("카카오 SDK 로드 실패 — 키/도메인/서비스 활성화 확인. (키를 비우면 OpenStreetMap으로 동작)","var(--warn)");
+    else if(e&&e.type==='NOT_FOUND') setKeyStatus("연결은 되나 테스트 주소를 못 찾음("+geoProvider()+").","var(--warn)");
+    else setKeyStatus("호출 실패(네트워크).","var(--warn)");
   });
 }
 
